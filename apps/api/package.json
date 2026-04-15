@@ -1,0 +1,22 @@
+{
+  "name": "@onboarder/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/env.ts",
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@hono/node-server": "^1.13.0",
+    "@onboarder/db": "*",
+    "dotenv": "^16.4.0",
+    "hono": "^4.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "vitest": "^3.0.0"
+  }
+}
