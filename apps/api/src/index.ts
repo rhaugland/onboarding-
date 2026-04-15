@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
 import { errorHandler } from "./middleware/error.js";
 import health from "./routes/health.js";
+import analyze from "./routes/analyze.js";
 
 const app = new Hono();
 
@@ -13,6 +14,7 @@ app.use("*", cors({
 app.use("*", errorHandler);
 
 app.route("/health", health);
+app.route("/api/analyze", analyze);
 
 const port = Number(process.env.PORT) || 3001;
 
