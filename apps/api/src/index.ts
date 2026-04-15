@@ -4,6 +4,7 @@ import { serve } from "@hono/node-server";
 import { errorHandler } from "./middleware/error.js";
 import health from "./routes/health.js";
 import analyze from "./routes/analyze.js";
+import generate from "./routes/generate.js";
 
 const app = new Hono();
 
@@ -15,6 +16,7 @@ app.use("*", errorHandler);
 
 app.route("/health", health);
 app.route("/api/analyze", analyze);
+app.route("/api/generate", generate);
 
 const port = Number(process.env.PORT) || 3001;
 
