@@ -9,10 +9,12 @@ interface Props {
   option: StoryboardOption;
   authMockup: { login: string; signup: string };
   onPick: () => void;
+  onCustomize: () => void;
   picking: boolean;
+  customizing: boolean;
 }
 
-export default function StoryboardStrip({ option, authMockup, onPick, picking }: Props) {
+export default function StoryboardStrip({ option, authMockup, onPick, onCustomize, picking, customizing }: Props) {
   const [isOpen, setIsOpen] = useState(false);
 
   const html = useMemo(
@@ -43,6 +45,15 @@ export default function StoryboardStrip({ option, authMockup, onPick, picking }:
             >
               <span aria-hidden="true">⤢</span>
               <span>Expand</span>
+            </button>
+            <button
+              type="button"
+              onClick={onCustomize}
+              disabled={customizing}
+              aria-label={`Customize ${option.name}`}
+              className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              {customizing ? "Opening…" : "Customize"}
             </button>
             <button
               type="button"

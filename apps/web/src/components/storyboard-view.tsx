@@ -9,10 +9,12 @@ interface Props {
   authMockup: { login: string; signup: string };
   appName: string;
   onPick: (optionId: string) => Promise<void>;
+  onCustomize: (optionId: string) => Promise<void>;
 }
 
-export default function StoryboardView({ options, authMockup, appName, onPick }: Props) {
+export default function StoryboardView({ options, authMockup, appName, onPick, onCustomize }: Props) {
   const [pickingId, setPickingId] = useState<string | null>(null);
+  const [customizingId, setCustomizingId] = useState<string | null>(null);
 
   async function handlePick(optionId: string) {
     setPickingId(optionId);
@@ -21,6 +23,11 @@ export default function StoryboardView({ options, authMockup, appName, onPick }:
     } finally {
       setPickingId(null);
     }
+  }
+
+  async function handleCustomize(optionId: string) {
+    setCustomizingId(optionId);
+    try { await onCustomize(optionId); } finally { setCustomizingId(null); }
   }
 
   return (
@@ -36,7 +43,9 @@ export default function StoryboardView({ options, authMockup, appName, onPick }:
             option={option}
             authMockup={authMockup}
             onPick={() => handlePick(option.id)}
+            onCustomize={() => handleCustomize(option.id)}
             picking={pickingId === option.id}
+            customizing={customizingId === option.id}
           />
         ))}
       </div>

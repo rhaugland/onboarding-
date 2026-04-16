@@ -8,7 +8,7 @@ import ViewportToggle from "@/components/viewport-toggle";
 import FlowBreakdown from "@/components/flow-breakdown";
 import StoryboardView from "@/components/storyboard-view";
 import { buildPreviewHtml } from "@/lib/preview-bundler";
-import { buildOption, StoryboardOption, OnboardingOption } from "@/lib/api";
+import { buildOption, createCustomizeDraft, StoryboardOption, OnboardingOption } from "@/lib/api";
 
 type Viewport = "phone" | "tablet" | "desktop";
 type Mode = "storyboard" | "full";
@@ -68,6 +68,16 @@ export default function PreviewPage() {
     }
   }
 
+  async function handleCustomize(optionId: string) {
+    setBuildError(null);
+    try {
+      const draft = await createCustomizeDraft(optionId);
+      router.push(`/customize/${draft.id}`);
+    } catch (err) {
+      setBuildError(err instanceof Error ? err.message : "Customize failed");
+    }
+  }
+
   function handleBackToStoryboards() {
     const updated = { ...session! };
     delete updated.builtOption;
@@ -100,6 +110,7 @@ export default function PreviewPage() {
           authMockup={session.authMockup}
           appName={session.appProfile.name}
           onPick={handlePick}
+          onCustomize={handleCustomize}
         />
       </>
     );
