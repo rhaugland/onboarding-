@@ -469,6 +469,7 @@ describe("POST /api/customize/:id/screens/:stepName/swap", () => {
               {
                 id: "sib-2",
                 projectId: "proj-1",
+                status: "storyboard",
                 mockupCode: { welcome: "<FromTour/>" },
               },
             ]),
@@ -520,7 +521,7 @@ describe("POST /api/customize/:id/screens/:stepName/swap", () => {
         from: () => ({
           where: () =>
             Promise.resolve([
-              { id: "sib-2", projectId: "proj-1", mockupCode: {} },
+              { id: "sib-2", projectId: "proj-1", status: "storyboard", mockupCode: {} },
             ]),
         }),
       });
@@ -535,5 +536,93 @@ describe("POST /api/customize/:id/screens/:stepName/swap", () => {
       }
     );
     expect(res.status).toBe(400);
+  });
+
+  it("returns 404 when source is in a different project", async () => {
+    selectMock
+      .mockReturnValueOnce({
+        from: () => ({
+          where: () =>
+            Promise.resolve([
+              {
+                id: "draft-1",
+                projectId: "proj-1",
+                flowStructure: [
+                  { stepName: "welcome", type: "form", description: "d" },
+                ],
+                mockupCode: { welcome: "<Old/>" },
+                customizeHistory: [],
+              },
+            ]),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: () => ({
+          where: () =>
+            Promise.resolve([
+              {
+                id: "sib-2",
+                projectId: "proj-other",
+                status: "storyboard",
+                mockupCode: { welcome: "<Other/>" },
+              },
+            ]),
+        }),
+      });
+
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request(
+      "/api/customize/draft-1/screens/welcome/swap",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceOptionId: "sib-2" }),
+      }
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 404 when source is not a storyboard original", async () => {
+    selectMock
+      .mockReturnValueOnce({
+        from: () => ({
+          where: () =>
+            Promise.resolve([
+              {
+                id: "draft-1",
+                projectId: "proj-1",
+                flowStructure: [
+                  { stepName: "welcome", type: "form", description: "d" },
+                ],
+                mockupCode: { welcome: "<Old/>" },
+                customizeHistory: [],
+              },
+            ]),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: () => ({
+          where: () =>
+            Promise.resolve([
+              {
+                id: "sib-2",
+                projectId: "proj-1",
+                status: "customizing",
+                mockupCode: { welcome: "<OtherDraft/>" },
+              },
+            ]),
+        }),
+      });
+
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request(
+      "/api/customize/draft-1/screens/welcome/swap",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceOptionId: "sib-2" }),
+      }
+    );
+    expect(res.status).toBe(404);
   });
 });

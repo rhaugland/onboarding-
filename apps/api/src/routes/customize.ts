@@ -256,7 +256,11 @@ customize.post("/:id/screens/:stepName/swap", async (c) => {
     .select()
     .from(onboardingOptions)
     .where(eq(onboardingOptions.id, sourceOptionId));
-  if (!source || source.projectId !== draft.projectId) {
+  if (
+    !source ||
+    source.projectId !== draft.projectId ||
+    source.status !== "storyboard"
+  ) {
     return c.json({ error: "Source option not found" }, 404);
   }
 
