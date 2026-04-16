@@ -295,4 +295,59 @@ customize.post("/:id/screens/:stepName/swap", async (c) => {
   return c.json({ ok: true, mockupCode: sourceCode });
 });
 
+customize.post("/:id/finalize", async (c) => {
+  const id = c.req.param("id");
+  const [draft] = await db
+    .select()
+    .from(onboardingOptions)
+    .where(eq(onboardingOptions.id, id));
+  if (!draft) return c.json({ error: "Draft not found" }, 404);
+
+  // Idempotent: already-ready drafts return unchanged
+  if (draft.status === "ready") {
+    return c.json(draft);
+  }
+  if (draft.status !== "customizing") {
+    return c.json(
+      { error: `Cannot finalize draft with status "${draft.status}"` },
+      400
+    );
+  }
+
+  const skipped = (draft.skippedSteps ?? []) as string[];
+  const history = (draft.customizeHistory ?? []) as unknown[];
+  if (history.length === 0 && skipped.length === 0) {
+    return c.json({ error: "No changes made" }, 400);
+  }
+
+  const flow = draft.flowStructure as Array<{
+    stepName: string;
+    type: string;
+    description: string;
+  }>;
+  const filteredFlow = flow.filter((s) => !skipped.includes(s.stepName));
+  const mockups = (draft.mockupCode ?? {}) as Record<string, string>;
+  const filteredMockups = Object.fromEntries(
+    Object.entries(mockups).filter(([k]) => !skipped.includes(k))
+  );
+
+  await db
+    .update(onboardingOptions)
+    .set({
+      status: "ready",
+      flowStructure: filteredFlow,
+      mockupCode: filteredMockups,
+      skippedSteps: [],
+    })
+    .where(eq(onboardingOptions.id, id));
+
+  return c.json({
+    ...draft,
+    status: "ready",
+    flowStructure: filteredFlow,
+    mockupCode: filteredMockups,
+    skippedSteps: [],
+  });
+});
+
 export default customize;

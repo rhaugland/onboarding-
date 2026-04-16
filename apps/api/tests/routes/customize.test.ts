@@ -626,3 +626,98 @@ describe("POST /api/customize/:id/screens/:stepName/swap", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("POST /api/customize/:id/finalize", () => {
+  beforeEach(() => {
+    selectMock.mockReset();
+    updateMock.mockReset();
+  });
+
+  it("filters skipped steps and flips status to ready", async () => {
+    selectMock.mockReturnValueOnce({
+      from: () => ({
+        where: () =>
+          Promise.resolve([
+            {
+              id: "draft-1",
+              status: "customizing",
+              flowStructure: [
+                { stepName: "a", type: "form", description: "d" },
+                { stepName: "b", type: "form", description: "d" },
+              ],
+              mockupCode: { a: "<A/>", b: "<B/>" },
+              skippedSteps: ["b"],
+              customizeHistory: [{ type: "swap" }],
+            },
+          ]),
+      }),
+    });
+
+    let captured: any = null;
+    updateMock.mockReturnValue({
+      set: (data: any) => {
+        captured = data;
+        return { where: () => Promise.resolve(undefined) };
+      },
+    });
+
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request("/api/customize/draft-1/finalize", {
+      method: "POST",
+    });
+    expect(res.status).toBe(200);
+    expect(captured.status).toBe("ready");
+    expect(captured.flowStructure).toHaveLength(1);
+    expect(captured.flowStructure[0].stepName).toBe("a");
+    expect(Object.keys(captured.mockupCode)).toEqual(["a"]);
+  });
+
+  it("rejects unchanged draft", async () => {
+    selectMock.mockReturnValueOnce({
+      from: () => ({
+        where: () =>
+          Promise.resolve([
+            {
+              id: "draft-1",
+              status: "customizing",
+              flowStructure: [{ stepName: "a", type: "form", description: "d" }],
+              mockupCode: { a: "<A/>" },
+              skippedSteps: [],
+              customizeHistory: [],
+            },
+          ]),
+      }),
+    });
+
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request("/api/customize/draft-1/finalize", {
+      method: "POST",
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("is idempotent for already-ready drafts", async () => {
+    selectMock.mockReturnValueOnce({
+      from: () => ({
+        where: () =>
+          Promise.resolve([
+            {
+              id: "draft-1",
+              status: "ready",
+              flowStructure: [{ stepName: "a", type: "form", description: "d" }],
+              mockupCode: { a: "<A/>" },
+              skippedSteps: [],
+              customizeHistory: [{ type: "swap" }],
+            },
+          ]),
+      }),
+    });
+
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request("/api/customize/draft-1/finalize", {
+      method: "POST",
+    });
+    expect(res.status).toBe(200);
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+});
