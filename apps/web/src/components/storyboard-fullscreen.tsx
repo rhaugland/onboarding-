@@ -25,6 +25,8 @@ export default function StoryboardFullscreen({
   onPick,
   picking,
 }: Props) {
+  const [mounted, setMounted] = useState(false);
+
   const panels = useMemo<Panel[]>(() => {
     const list: Panel[] = [];
     if (authMockup.login) list.push({ label: "Login", code: authMockup.login });
@@ -49,7 +51,10 @@ export default function StoryboardFullscreen({
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         onClose();
-      } else if (e.key === "ArrowRight") {
+        return;
+      }
+      if (panels.length === 0) return;
+      if (e.key === "ArrowRight") {
         setCurrentIndex((i) => Math.min(panels.length - 1, i + 1));
       } else if (e.key === "ArrowLeft") {
         setCurrentIndex((i) => Math.max(0, i - 1));
@@ -68,6 +73,16 @@ export default function StoryboardFullscreen({
     };
   }, []);
 
+  // Mount guard — createPortal(..., document.body) only runs client-side.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Reset to first panel when a different option is shown.
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [option.id]);
+
   const current = panels[currentIndex];
   const html = useMemo(
     () => (current ? buildSingleScreenHtml(current.code, current.label) : ""),
@@ -77,7 +92,7 @@ export default function StoryboardFullscreen({
   const isAtStart = currentIndex === 0;
   const isAtEnd = currentIndex >= panels.length - 1;
 
-  if (typeof document === "undefined") return null;
+  if (!mounted) return null;
 
   return createPortal(
     <div
