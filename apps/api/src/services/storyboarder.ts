@@ -5,6 +5,7 @@ import {
   buildStoryboardPlanUserMessage,
   buildStoryboardMockupUserMessage,
 } from "../prompts/storyboard.js";
+import { trimDesignReferences } from "./shared.js";
 
 interface FlowStep {
   stepName: string;
@@ -36,26 +37,6 @@ export interface StoryboardResult {
   options: StoryboardOption[];
 }
 
-function trimDesignReferences(
-  appProfile: Record<string, unknown>
-): Record<string, unknown> {
-  const designReferences = (appProfile.designReferences ?? {}) as {
-    tailwindConfig?: string;
-    globalsCss?: string;
-    samplePages?: Record<string, string>;
-    layoutCode?: string;
-  };
-  const samplePagesEntries = Object.entries(designReferences.samplePages ?? {});
-  return {
-    ...appProfile,
-    designReferences: {
-      tailwindConfig: designReferences.tailwindConfig,
-      globalsCss: designReferences.globalsCss,
-      samplePages: Object.fromEntries(samplePagesEntries.slice(0, 1)),
-    },
-  };
-}
-
 export async function generateStoryboard(
   appProfile: Record<string, unknown>
 ): Promise<StoryboardResult> {
@@ -78,6 +59,16 @@ export async function generateStoryboard(
       JSON.stringify(plan).slice(0, 500)
     );
     throw new Error("Storyboard plan response invalid");
+  }
+
+  if (
+    !plan.options.every(
+      (o: any) => typeof o?.name === "string" && Array.isArray(o?.flowStructure)
+    )
+  ) {
+    throw new Error(
+      "Storyboard plan options malformed: each option requires name (string) and flowStructure (array)"
+    );
   }
 
   const trimmedProfile = trimDesignReferences(appProfile);

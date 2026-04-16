@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
+import { sendPrompt } from "../../src/services/claude.js";
+import { generateStoryboard } from "../../src/services/storyboarder.js";
 
 vi.mock("../../src/services/claude.js", () => ({
   sendPrompt: vi
@@ -47,9 +49,6 @@ vi.mock("../../src/services/claude.js", () => ({
 
 describe("storyboarder service", () => {
   it("generates 3 options with mockup code plus a shared auth mockup", async () => {
-    const { generateStoryboard } = await import(
-      "../../src/services/storyboarder.js"
-    );
     const result = await generateStoryboard({
       name: "Test App",
       designReferences: { tailwindConfig: "", globalsCss: "", samplePages: {} },
@@ -65,13 +64,7 @@ describe("storyboarder service", () => {
   });
 
   it("throws if plan response is malformed", async () => {
-    vi.resetModules();
-    vi.doMock("../../src/services/claude.js", () => ({
-      sendPrompt: vi.fn().mockResolvedValue({ foo: "bar" }),
-    }));
-    const { generateStoryboard } = await import(
-      "../../src/services/storyboarder.js"
-    );
+    vi.mocked(sendPrompt).mockResolvedValue({ foo: "bar" });
     await expect(generateStoryboard({})).rejects.toThrow(/invalid/i);
   });
 });
