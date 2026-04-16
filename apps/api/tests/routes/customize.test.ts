@@ -139,3 +139,57 @@ describe("POST /api/customize", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("GET /api/customize/:id", () => {
+  beforeEach(() => {
+    selectMock.mockReset();
+  });
+
+  it("returns draft with siblings", async () => {
+    selectMock
+      .mockReturnValueOnce({
+        from: () => ({
+          where: () =>
+            Promise.resolve([
+              {
+                id: "draft-1",
+                projectId: "proj-1",
+                baseOptionId: "base-1",
+                status: "customizing",
+                flowStructure: [{ stepName: "welcome", type: "form", description: "d" }],
+                mockupCode: { welcome: "<W/>" },
+                name: "Wizard — Remix",
+                rationale: "r",
+                skippedSteps: [],
+                customizeHistory: [],
+              },
+            ]),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: () => ({
+          where: () =>
+            Promise.resolve([
+              { id: "base-1", name: "Wizard", flowStructure: [], mockupCode: {}, status: "storyboard" },
+              { id: "sib-2", name: "Tour", flowStructure: [], mockupCode: {}, status: "storyboard" },
+            ]),
+        }),
+      });
+
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request("/api/customize/draft-1");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.draft.id).toBe("draft-1");
+    expect(body.siblings).toHaveLength(2);
+  });
+
+  it("returns 404 when draft missing", async () => {
+    selectMock.mockReturnValueOnce({
+      from: () => ({ where: () => Promise.resolve([]) }),
+    });
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request("/api/customize/missing");
+    expect(res.status).toBe(404);
+  });
+});

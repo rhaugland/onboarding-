@@ -53,4 +53,28 @@ customize.post("/", async (c) => {
   return c.json(draft);
 });
 
+customize.get("/:id", async (c) => {
+  const id = c.req.param("id");
+  const [draft] = await db
+    .select()
+    .from(onboardingOptions)
+    .where(eq(onboardingOptions.id, id));
+
+  if (!draft) {
+    return c.json({ error: "Draft not found" }, 404);
+  }
+
+  const siblings = await db
+    .select()
+    .from(onboardingOptions)
+    .where(
+      and(
+        eq(onboardingOptions.projectId, draft.projectId),
+        eq(onboardingOptions.status, "storyboard")
+      )
+    );
+
+  return c.json({ draft, siblings });
+});
+
 export default customize;
