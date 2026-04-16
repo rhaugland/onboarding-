@@ -10,7 +10,7 @@ import integrate from "./routes/integrate.js";
 const app = new Hono();
 
 app.use("*", cors({
-  origin: process.env.APP_URL || "http://localhost:3002",
+  origin: process.env.APP_URL || "http://localhost:3012",
   credentials: true,
 }));
 app.use("*", errorHandler);
@@ -20,7 +20,7 @@ app.route("/api/analyze", analyze);
 app.route("/api/generate", generate);
 app.route("/api/integrate", integrate);
 
-const port = Number(process.env.PORT) || 3001;
+const port = Number(process.env.PORT) || 3011;
 
 if (process.env.NODE_ENV !== "test") {
   console.log(`Onboarder API running on port ${port}`);

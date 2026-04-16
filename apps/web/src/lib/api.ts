@@ -9,8 +9,17 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
-    const error = await res.text();
-    throw new Error(error || `Request failed: ${res.status}`);
+    let message = `Request failed: ${res.status}`;
+    const text = await res.text();
+    if (text) {
+      try {
+        const body = JSON.parse(text);
+        message = body?.error || text;
+      } catch {
+        message = text;
+      }
+    }
+    throw new Error(message);
   }
 
   return res.json();

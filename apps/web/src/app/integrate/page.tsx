@@ -34,9 +34,41 @@ export default function IntegratePage() {
       });
   }, [router]);
 
+  const fromZip = (() => {
+    if (typeof window === "undefined") return false;
+    const session = sessionStorage.getItem("onboarder_session");
+    if (!session) return false;
+    try { return JSON.parse(session).fromZip === true; } catch { return false; }
+  })();
+
   async function handleConfirm() {
     if (!changeset) return;
 
+    // If uploaded from zip, download as zip instead of writing to filesystem
+    if (fromZip) {
+      setStatus("writing");
+      try {
+        const JSZip = (await import("jszip")).default;
+        const zip = new JSZip();
+        for (const file of changeset.files) {
+          zip.file(file.path, file.content);
+        }
+        const blob = await zip.generateAsync({ type: "blob" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "onboarding-integration.zip";
+        a.click();
+        URL.revokeObjectURL(url);
+        setStatus("done");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to create zip");
+        setStatus("error");
+      }
+      return;
+    }
+
+    // Otherwise write directly to filesystem
     const dirHandle = (window as unknown as Record<string, unknown>)
       .__onboarderDirHandle as FileSystemDirectoryHandle | undefined;
     if (!dirHandle) {
@@ -81,7 +113,7 @@ export default function IntegratePage() {
               onClick={handleConfirm}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
             >
-              Write Files to Project
+              {fromZip ? "Download Integration Zip" : "Write Files to Project"}
             </button>
           )}
         </div>

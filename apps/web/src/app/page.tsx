@@ -15,19 +15,26 @@ export default function Home() {
 
   async function handleFilesReady(
     files: Record<string, string>,
-    dirHandle: FileSystemDirectoryHandle
+    dirHandle: FileSystemDirectoryHandle | null,
+    projectName: string
   ) {
     try {
       setStatus("reading");
       setError(undefined);
 
-      // Store dirHandle for later integration
-      (window as unknown as Record<string, unknown>).__onboarderDirHandle = dirHandle;
+      // Store dirHandle for later integration (null for zip uploads)
+      if (dirHandle) {
+        (window as unknown as Record<string, unknown>).__onboarderDirHandle = dirHandle;
+      }
+
+      const fileCount = Object.keys(files).length;
+      const payloadSize = JSON.stringify(files).length;
+      console.log(`[onboarder] ${fileCount} files, ~${(payloadSize / 1024).toFixed(0)}KB payload`);
 
       setStatus("analyzing");
       const { projectId, appProfile } = await analyzeProject(
         files,
-        dirHandle.name
+        projectName
       );
 
       setStatus("generating");
@@ -38,7 +45,7 @@ export default function Home() {
       // Store data for preview page
       sessionStorage.setItem(
         "onboarder_session",
-        JSON.stringify({ projectId, appProfile, options })
+        JSON.stringify({ projectId, appProfile, options, fromZip: !dirHandle })
       );
 
       router.push("/preview");

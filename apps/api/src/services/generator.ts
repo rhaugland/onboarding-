@@ -1,7 +1,9 @@
 import { sendPrompt } from "./claude.js";
 import {
-  GENERATE_SYSTEM_PROMPT,
-  buildGenerateUserMessage,
+  GENERATE_PLAN_SYSTEM_PROMPT,
+  GENERATE_OPTION_CODE_SYSTEM_PROMPT,
+  buildGeneratePlanUserMessage,
+  buildGenerateOptionCodeUserMessage,
 } from "../prompts/generate.js";
 
 interface FlowStep {
@@ -10,10 +12,25 @@ interface FlowStep {
   description: string;
 }
 
-interface GeneratedOption {
+interface OptionPlan {
   name: string;
   rationale: string;
   flowStructure: FlowStep[];
+}
+
+interface PlanResult {
+  authCode: {
+    login: string;
+    signup: string;
+  };
+  options: OptionPlan[];
+}
+
+interface OptionCodeResult {
+  componentCode: Record<string, string>;
+}
+
+interface GeneratedOption extends OptionPlan {
   componentCode: Record<string, string>;
 }
 
@@ -28,7 +45,72 @@ interface GenerateResult {
 export async function generateOnboarding(
   appProfile: Record<string, unknown>
 ): Promise<GenerateResult> {
-  const userMessage = buildGenerateUserMessage(appProfile);
-  const result = await sendPrompt(GENERATE_SYSTEM_PROMPT, userMessage);
-  return result as GenerateResult;
+  // Step 1: plan call — get option metadata + auth code
+  const planMessage = buildGeneratePlanUserMessage(appProfile);
+  const plan = (await sendPrompt(GENERATE_PLAN_SYSTEM_PROMPT, planMessage)) as PlanResult;
+
+  if (
+    !plan ||
+    typeof plan !== "object" ||
+    !Array.isArray(plan.options) ||
+    !plan.authCode
+  ) {
+    console.error(
+      "[generator] plan response shape invalid:",
+      JSON.stringify(plan).slice(0, 500)
+    );
+    throw new Error("Plan response missing 'options' array or 'authCode'");
+  }
+
+  // Trim design references for per-option calls — keep brand sources (tailwind, globals.css)
+  // and a single sample page for vocabulary, drop the layout + extra pages.
+  const designReferences = (appProfile.designReferences ?? {}) as {
+    tailwindConfig?: string;
+    globalsCss?: string;
+    samplePages?: Record<string, string>;
+    layoutCode?: string;
+  };
+  const samplePagesEntries = Object.entries(designReferences.samplePages ?? {});
+  const trimmedAppProfile = {
+    ...appProfile,
+    designReferences: {
+      tailwindConfig: designReferences.tailwindConfig,
+      globalsCss: designReferences.globalsCss,
+      samplePages: Object.fromEntries(samplePagesEntries.slice(0, 1)),
+    },
+  };
+
+  // Step 2: fan out component code generation per option, in parallel
+  const optionResults = await Promise.all(
+    plan.options.map(async (option): Promise<GeneratedOption> => {
+      const optionMessage = buildGenerateOptionCodeUserMessage(trimmedAppProfile, option);
+      const result = (await sendPrompt(
+        GENERATE_OPTION_CODE_SYSTEM_PROMPT,
+        optionMessage
+      )) as OptionCodeResult;
+
+      if (
+        !result ||
+        typeof result !== "object" ||
+        !result.componentCode ||
+        typeof result.componentCode !== "object"
+      ) {
+        console.error(
+          `[generator] option "${option.name}" code response invalid:`,
+          JSON.stringify(result).slice(0, 500)
+        );
+        throw new Error(`Option "${option.name}" code response missing componentCode`);
+      }
+
+      return {
+        ...option,
+        componentCode: result.componentCode,
+      };
+    })
+  );
+
+  return {
+    authCode: plan.authCode,
+    options: optionResults,
+  };
 }

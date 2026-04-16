@@ -5,7 +5,8 @@ import { useState } from "react";
 interface DropZoneProps {
   onFilesReady: (
     files: Record<string, string>,
-    dirHandle: FileSystemDirectoryHandle
+    dirHandle: FileSystemDirectoryHandle | null,
+    projectName: string
   ) => void;
   disabled?: boolean;
 }
@@ -22,7 +23,7 @@ export default function DropZone({ onFilesReady, disabled }: DropZoneProps) {
       );
       const dirHandle = await pickProjectFolder();
       const files = await readProjectFiles(dirHandle);
-      onFilesReady(files, dirHandle);
+      onFilesReady(files, dirHandle, dirHandle.name);
     } catch (err) {
       if ((err as Error).name !== "AbortError") {
         console.error("Failed to read project:", err);
@@ -30,23 +31,79 @@ export default function DropZone({ onFilesReady, disabled }: DropZoneProps) {
     }
   }
 
+  async function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+    if (disabled) return;
+
+    const items = e.dataTransfer.items;
+    if (!items || items.length === 0) return;
+
+    // Check if it's a zip file
+    const firstItem = items[0];
+    if (firstItem.kind === "file") {
+      const file = firstItem.getAsFile();
+      if (file && file.name.endsWith(".zip")) {
+        try {
+          const { readZipFile } = await import("@/lib/file-reader");
+          const { files, name } = await readZipFile(file);
+          onFilesReady(files, null, name);
+        } catch (err) {
+          console.error("Failed to read zip:", err);
+        }
+        return;
+      }
+    }
+
+    // Try as a directory via File System Access API
+    if ("getAsFileSystemHandle" in DataTransferItem.prototype) {
+      try {
+        const handle = await (firstItem as any).getAsFileSystemHandle();
+        if (handle && handle.kind === "directory") {
+          const { readProjectFiles } = await import("@/lib/file-reader");
+          const files = await readProjectFiles(handle as FileSystemDirectoryHandle);
+          onFilesReady(files, handle as FileSystemDirectoryHandle, handle.name);
+          return;
+        }
+      } catch (err) {
+        console.error("Failed to read dropped folder:", err);
+      }
+    }
+
+    // Fallback: if it's a single zip file from the file list
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith(".zip")) {
+      try {
+        const { readZipFile } = await import("@/lib/file-reader");
+        const { files, name } = await readZipFile(file);
+        onFilesReady(files, null, name);
+      } catch (err) {
+        console.error("Failed to read zip:", err);
+      }
+      return;
+    }
+
+    // Nothing we can handle — fall back to folder picker
+    handleClick();
+  }
+
   return (
-    <button
+    <div
       onClick={handleClick}
-      disabled={disabled}
       onDragOver={(e) => {
         e.preventDefault();
-        setIsDragging(true);
+        if (!disabled) setIsDragging(true);
       }}
       onDragLeave={() => setIsDragging(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        setIsDragging(false);
-        handleClick();
+      onDrop={handleDrop}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") handleClick();
       }}
       className={`
         w-full max-w-2xl mx-auto p-16 rounded-2xl border-2 border-dashed
-        transition-all cursor-pointer
+        transition-all cursor-pointer select-none
         ${
           isDragging
             ? "border-blue-500 bg-blue-50"
@@ -61,10 +118,10 @@ export default function DropZone({ onFilesReady, disabled }: DropZoneProps) {
           Select a Next.js Project
         </h2>
         <p className="text-gray-500">
-          Click to choose a project folder. We'll analyze it and generate
-          onboarding options.
+          Drag & drop a project folder or <span className="font-medium">.zip file</span>,
+          or click to browse.
         </p>
       </div>
-    </button>
+    </div>
   );
 }

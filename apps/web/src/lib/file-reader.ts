@@ -37,8 +37,67 @@ const INCLUDE_EXTENSIONS = new Set([
   ".cjs",
 ]);
 
+function shouldIncludeFile(name: string): boolean {
+  const ext = name.substring(name.lastIndexOf("."));
+  if (IGNORE_EXTENSIONS.has(ext)) return false;
+  if (INCLUDE_EXTENSIONS.has(ext) || name === "package.json") return true;
+  return false;
+}
+
+function isIgnoredDir(name: string): boolean {
+  return IGNORE_DIRS.has(name);
+}
+
 export async function pickProjectFolder(): Promise<FileSystemDirectoryHandle> {
   return await window.showDirectoryPicker({ mode: "readwrite" });
+}
+
+export async function readZipFile(file: File): Promise<{ files: Record<string, string>; name: string }> {
+  const JSZip = (await import("jszip")).default;
+  const zip = await JSZip.loadAsync(file);
+  const files: Record<string, string> = {};
+
+  // Detect if the zip has a single root folder (common pattern)
+  const entries = Object.keys(zip.files);
+  const topLevelDirs = new Set<string>();
+  for (const entry of entries) {
+    const firstSegment = entry.split("/")[0];
+    topLevelDirs.add(firstSegment);
+  }
+  const stripPrefix = topLevelDirs.size === 1 ? [...topLevelDirs][0] + "/" : "";
+
+  for (const [zipPath, zipEntry] of Object.entries(zip.files)) {
+    if (zipEntry.dir) continue;
+
+    // Strip single root folder prefix if present
+    let path = stripPrefix && zipPath.startsWith(stripPrefix)
+      ? zipPath.slice(stripPrefix.length)
+      : zipPath;
+
+    if (!path) continue;
+
+    // Check ignore rules
+    const segments = path.split("/");
+    if (segments.some((seg) => isIgnoredDir(seg))) continue;
+
+    const fileName = segments[segments.length - 1];
+    if (!shouldIncludeFile(fileName)) continue;
+
+    try {
+      const text = await zipEntry.async("text");
+      if (text.length <= 50000) {
+        files[path] = text;
+      }
+    } catch {
+      // Skip files that can't be read as text
+    }
+  }
+
+  const name = stripPrefix
+    ? stripPrefix.replace(/\/$/, "")
+    : file.name.replace(/\.zip$/, "");
+
+  return { files, name };
 }
 
 export async function readProjectFiles(
