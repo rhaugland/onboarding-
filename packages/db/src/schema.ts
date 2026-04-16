@@ -14,12 +14,18 @@ export const integrationStatusEnum = pgEnum("integration_status", [
   "rolled_back",
 ]);
 
+export const optionStatusEnum = pgEnum("option_status", [
+  "storyboard",
+  "built",
+]);
+
 export const projects = pgTable("projects", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
   folderPath: text("folder_path").notNull(),
   appProfile: jsonb("app_profile"),
   stackInfo: jsonb("stack_info"),
+  authMockup: jsonb("auth_mockup"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -31,8 +37,10 @@ export const onboardingOptions = pgTable("onboarding_options", {
   name: text("name").notNull(),
   rationale: text("rationale").notNull(),
   flowStructure: jsonb("flow_structure").notNull(),
-  componentCode: jsonb("component_code").notNull(),
-  authCode: jsonb("auth_code").notNull(),
+  mockupCode: jsonb("mockup_code"),
+  componentCode: jsonb("component_code"),
+  authCode: jsonb("auth_code"),
+  status: optionStatusEnum("status").default("storyboard").notNull(),
   selected: boolean("selected").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

@@ -94,3 +94,38 @@ export const integrateOption = (projectId: string, optionId: string) =>
     method: "POST",
     body: JSON.stringify({ projectId, optionId }),
   });
+
+export interface StoryboardOption {
+  id: string;
+  name: string;
+  rationale: string;
+  flowStructure: Array<{
+    stepName: string;
+    type: "form" | "tour" | "tooltip" | "checklist" | "contextual";
+    description: string;
+  }>;
+  mockupCode: Record<string, string>;
+}
+
+export interface StoryboardResponse {
+  options: StoryboardOption[];
+  authMockup: { login: string; signup: string };
+}
+
+export interface BuildResponse {
+  id: string;
+  componentCode: Record<string, string>;
+  authCode: { login: string; signup: string };
+}
+
+export const generateStoryboard = (projectId: string) =>
+  request<StoryboardResponse>("/api/storyboard", {
+    method: "POST",
+    body: JSON.stringify({ projectId }),
+  });
+
+export const buildOption = (projectId: string, optionId: string) =>
+  request<BuildResponse>("/api/build", {
+    method: "POST",
+    body: JSON.stringify({ projectId, optionId }),
+  });

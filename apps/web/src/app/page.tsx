@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import DropZone from "@/components/drop-zone";
 import AnalysisStatus from "@/components/analysis-status";
-import { analyzeProject, generateOnboarding } from "@/lib/api";
+import { analyzeProject, generateStoryboard } from "@/lib/api";
 
-type Status = "idle" | "reading" | "analyzing" | "generating" | "done" | "error";
+type Status = "idle" | "reading" | "analyzing" | "storyboarding" | "done" | "error";
 
 export default function Home() {
   const router = useRouter();
@@ -37,15 +37,21 @@ export default function Home() {
         projectName
       );
 
-      setStatus("generating");
-      const { options } = await generateOnboarding(projectId);
+      setStatus("storyboarding");
+      const { options, authMockup } = await generateStoryboard(projectId);
 
       setStatus("done");
 
       // Store data for preview page
       sessionStorage.setItem(
         "onboarder_session",
-        JSON.stringify({ projectId, appProfile, options, fromZip: !dirHandle })
+        JSON.stringify({
+          projectId,
+          appProfile,
+          storyboardOptions: options,
+          authMockup,
+          fromZip: !dirHandle,
+        })
       );
 
       router.push("/preview");
