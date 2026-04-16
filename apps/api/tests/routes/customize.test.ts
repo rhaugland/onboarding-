@@ -720,4 +720,43 @@ describe("POST /api/customize/:id/finalize", () => {
     expect(res.status).toBe(200);
     expect(updateMock).not.toHaveBeenCalled();
   });
+
+  it("returns 404 when draft missing", async () => {
+    selectMock.mockReturnValueOnce({
+      from: () => ({
+        where: () => Promise.resolve([]),
+      }),
+    });
+
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request("/api/customize/missing/finalize", {
+      method: "POST",
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it("rejects finalize on non-customizing non-ready status", async () => {
+    selectMock.mockReturnValueOnce({
+      from: () => ({
+        where: () =>
+          Promise.resolve([
+            {
+              id: "draft-1",
+              status: "storyboard",
+              flowStructure: [{ stepName: "a", type: "form", description: "d" }],
+              mockupCode: { a: "<A/>" },
+              skippedSteps: [],
+              customizeHistory: [],
+            },
+          ]),
+      }),
+    });
+
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request("/api/customize/draft-1/finalize", {
+      method: "POST",
+    });
+    expect(res.status).toBe(400);
+    expect(updateMock).not.toHaveBeenCalled();
+  });
 });
