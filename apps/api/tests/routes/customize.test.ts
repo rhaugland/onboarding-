@@ -273,4 +273,24 @@ describe("PATCH /api/customize/:id", () => {
     });
     expect(res.status).toBe(400);
   });
+
+  it("rejects malformed JSON with 400", async () => {
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request("/api/customize/draft-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: "not json",
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects null body with 400", async () => {
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request("/api/customize/draft-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: "null",
+    });
+    expect(res.status).toBe(400);
+  });
 });

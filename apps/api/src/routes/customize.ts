@@ -79,7 +79,16 @@ customize.get("/:id", async (c) => {
 
 customize.patch("/:id", async (c) => {
   const id = c.req.param("id");
-  const body = (await c.req.json()) as Record<string, unknown>;
+  let body: Record<string, unknown>;
+  try {
+    const raw = await c.req.json();
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+      return c.json({ error: "Body must be a JSON object" }, 400);
+    }
+    body = raw as Record<string, unknown>;
+  } catch {
+    return c.json({ error: "Invalid JSON body" }, 400);
+  }
   const keys = Object.keys(body);
 
   if (keys.length !== 1 || keys[0] !== "skippedSteps") {
