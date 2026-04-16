@@ -129,3 +129,70 @@ export const buildOption = (projectId: string, optionId: string) =>
     method: "POST",
     body: JSON.stringify({ projectId, optionId }),
   });
+
+export interface CustomizeDraft {
+  id: string;
+  projectId: string;
+  name: string;
+  rationale: string;
+  flowStructure: Array<{
+    stepName: string;
+    type: "form" | "tour" | "tooltip" | "checklist" | "contextual";
+    description: string;
+  }>;
+  mockupCode: Record<string, string>;
+  status: "storyboard" | "customizing" | "ready" | "built";
+  baseOptionId: string | null;
+  skippedSteps: string[];
+}
+
+export interface CustomizeGetResponse {
+  draft: CustomizeDraft;
+  siblings: StoryboardOption[];
+}
+
+export const createCustomizeDraft = (baseOptionId: string) =>
+  request<CustomizeDraft>("/api/customize", {
+    method: "POST",
+    body: JSON.stringify({ baseOptionId }),
+  });
+
+export const getCustomizeDraft = (id: string) =>
+  request<CustomizeGetResponse>(`/api/customize/${id}`);
+
+export const updateCustomizeSkips = (id: string, skippedSteps: string[]) =>
+  request<{ ok: true }>(`/api/customize/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ skippedSteps }),
+  });
+
+export const regenerateCustomizeScreen = (
+  id: string,
+  stepName: string,
+  prompt: string
+) =>
+  request<{ ok: true; mockupCode: string }>(
+    `/api/customize/${id}/screens/${encodeURIComponent(stepName)}/regenerate`,
+    {
+      method: "POST",
+      body: JSON.stringify({ prompt }),
+    }
+  );
+
+export const swapCustomizeScreen = (
+  id: string,
+  stepName: string,
+  sourceOptionId: string
+) =>
+  request<{ ok: true; mockupCode: string }>(
+    `/api/customize/${id}/screens/${encodeURIComponent(stepName)}/swap`,
+    {
+      method: "POST",
+      body: JSON.stringify({ sourceOptionId }),
+    }
+  );
+
+export const finalizeCustomizeDraft = (id: string) =>
+  request<CustomizeDraft>(`/api/customize/${id}/finalize`, {
+    method: "POST",
+  });
