@@ -9,8 +9,9 @@ interface Props {
   option: StoryboardOption;
   authMockup: { login: string; signup: string };
   onClose: () => void;
-  onPick: () => void;
-  picking: boolean;
+  onPick?: () => void;
+  picking?: boolean;
+  showPickButton?: boolean;
 }
 
 interface Panel {
@@ -23,7 +24,8 @@ export default function StoryboardFullscreen({
   authMockup,
   onClose,
   onPick,
-  picking,
+  picking = false,
+  showPickButton = true,
 }: Props) {
   const [mounted, setMounted] = useState(false);
 
@@ -113,14 +115,16 @@ export default function StoryboardFullscreen({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onPick}
-            disabled={picking || panels.length === 0}
-            className="px-4 py-1.5 bg-white text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-100 disabled:opacity-50"
-          >
-            {picking ? "Building…" : "Pick this flow"}
-          </button>
+          {showPickButton && onPick && (
+            <button
+              type="button"
+              onClick={onPick}
+              disabled={picking || panels.length === 0}
+              className="px-4 py-1.5 bg-white text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-100 disabled:opacity-50"
+            >
+              {picking ? "Building…" : "Pick this flow"}
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}
