@@ -64,8 +64,8 @@ export async function generateOnboarding(
   }
 
   // Trim design references for per-option calls — keep brand sources
-  // (tailwind, globals.css, layout) and a single sample page for vocabulary,
-  // drop extra sample pages to keep per-option token budget down.
+  // (tailwind, globals.css) and a single sample page for vocabulary,
+  // drop layout and extra sample pages to keep per-option token budget down.
   const trimmedAppProfile = trimDesignReferences(appProfile);
 
   // Step 2: fan out component code generation per option, in parallel
