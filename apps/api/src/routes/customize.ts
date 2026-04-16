@@ -115,6 +115,9 @@ customize.patch("/:id", async (c) => {
     .from(onboardingOptions)
     .where(eq(onboardingOptions.id, id));
   if (!draft) return c.json({ error: "Draft not found" }, 404);
+  if (draft.status !== "customizing") {
+    return c.json({ error: "Only customizing drafts can be modified" }, 400);
+  }
 
   const validSteps = new Set(
     (draft.flowStructure as Array<{ stepName: string }>).map((s) => s.stepName)
@@ -164,6 +167,9 @@ customize.post("/:id/screens/:stepName/regenerate", async (c) => {
     .from(onboardingOptions)
     .where(eq(onboardingOptions.id, id));
   if (!draft) return c.json({ error: "Draft not found" }, 404);
+  if (draft.status !== "customizing") {
+    return c.json({ error: "Only customizing drafts can be modified" }, 400);
+  }
 
   const flow = draft.flowStructure as Array<{
     stepName: string;
@@ -246,6 +252,9 @@ customize.post("/:id/screens/:stepName/swap", async (c) => {
     .from(onboardingOptions)
     .where(eq(onboardingOptions.id, id));
   if (!draft) return c.json({ error: "Draft not found" }, 404);
+  if (draft.status !== "customizing") {
+    return c.json({ error: "Only customizing drafts can be modified" }, 400);
+  }
 
   const flow = draft.flowStructure as Array<{ stepName: string }>;
   if (!flow.some((s) => s.stepName === stepName)) {

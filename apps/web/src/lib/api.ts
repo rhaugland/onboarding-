@@ -144,6 +144,7 @@ export interface CustomizeDraft {
   status: "storyboard" | "customizing" | "ready" | "built";
   baseOptionId: string | null;
   skippedSteps: string[];
+  customizeHistory: Array<Record<string, unknown>>;
 }
 
 export interface CustomizeGetResponse {

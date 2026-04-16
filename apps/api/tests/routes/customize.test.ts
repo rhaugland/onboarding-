@@ -207,6 +207,7 @@ describe("PATCH /api/customize/:id", () => {
           Promise.resolve([
             {
               id: "draft-1",
+              status: "customizing",
               flowStructure: [
                 { stepName: "welcome", type: "form", description: "d" },
                 { stepName: "profile", type: "form", description: "d" },
@@ -242,6 +243,7 @@ describe("PATCH /api/customize/:id", () => {
           Promise.resolve([
             {
               id: "draft-1",
+              status: "customizing",
               flowStructure: [{ stepName: "welcome", type: "form", description: "d" }],
             },
           ]),
@@ -308,6 +310,7 @@ describe("POST /api/customize/:id/screens/:stepName/regenerate", () => {
           Promise.resolve([
             {
               id: "draft-1",
+              status: "customizing",
               flowStructure: [
                 { stepName: "welcome", type: "form", description: "greet" },
               ],
@@ -354,6 +357,7 @@ describe("POST /api/customize/:id/screens/:stepName/regenerate", () => {
           Promise.resolve([
             {
               id: "draft-1",
+              status: "customizing",
               flowStructure: [{ stepName: "welcome", type: "form", description: "d" }],
               mockupCode: { welcome: "<W/>" },
               customizeHistory: [],
@@ -394,6 +398,7 @@ describe("POST /api/customize/:id/screens/:stepName/regenerate", () => {
           Promise.resolve([
             {
               id: "draft-1",
+              status: "customizing",
               flowStructure: [{ stepName: "welcome", type: "form", description: "d" }],
               mockupCode: { welcome: "<W/>" },
               customizeHistory: [],
@@ -453,6 +458,7 @@ describe("POST /api/customize/:id/screens/:stepName/swap", () => {
               {
                 id: "draft-1",
                 projectId: "proj-1",
+                status: "customizing",
                 flowStructure: [
                   { stepName: "welcome", type: "form", description: "d" },
                 ],
@@ -508,6 +514,7 @@ describe("POST /api/customize/:id/screens/:stepName/swap", () => {
               {
                 id: "draft-1",
                 projectId: "proj-1",
+                status: "customizing",
                 flowStructure: [
                   { stepName: "welcome", type: "form", description: "d" },
                 ],
@@ -547,6 +554,7 @@ describe("POST /api/customize/:id/screens/:stepName/swap", () => {
               {
                 id: "draft-1",
                 projectId: "proj-1",
+                status: "customizing",
                 flowStructure: [
                   { stepName: "welcome", type: "form", description: "d" },
                 ],
@@ -591,6 +599,7 @@ describe("POST /api/customize/:id/screens/:stepName/swap", () => {
               {
                 id: "draft-1",
                 projectId: "proj-1",
+                status: "customizing",
                 flowStructure: [
                   { stepName: "welcome", type: "form", description: "d" },
                 ],

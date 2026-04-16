@@ -28,6 +28,7 @@ export default function CustomizeView({ draftId }: Props) {
   const [finalizing, setFinalizing] = useState(false);
   const [finalizeError, setFinalizeError] = useState<string | null>(null);
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
+  const [hasEdited, setHasEdited] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,11 +49,12 @@ export default function CustomizeView({ draftId }: Props) {
 
   const isDirty = useMemo(() => {
     if (!draft) return false;
-    return (draft.skippedSteps?.length ?? 0) > 0;
-    // Note: regen/swap edits also mark dirty server-side via customizeHistory;
-    // client just reflects skip state here. The finalize endpoint is the
-    // source of truth — it checks history length too.
-  }, [draft]);
+    return (
+      hasEdited ||
+      (draft.skippedSteps?.length ?? 0) > 0 ||
+      (draft.customizeHistory?.length ?? 0) > 0
+    );
+  }, [draft, hasEdited]);
 
   async function handleToggleSkip(stepName: string, skipped: boolean) {
     if (!draft) return;
@@ -71,6 +73,7 @@ export default function CustomizeView({ draftId }: Props) {
   async function handleRegenerate(stepName: string, prompt: string) {
     if (!draft) return;
     const result = await regenerateCustomizeScreen(draftId, stepName, prompt);
+    setHasEdited(true);
     setDraft({
       ...draft,
       mockupCode: { ...draft.mockupCode, [stepName]: result.mockupCode },
@@ -80,6 +83,7 @@ export default function CustomizeView({ draftId }: Props) {
   async function handleSwap(stepName: string, sourceOptionId: string) {
     if (!draft) return;
     const result = await swapCustomizeScreen(draftId, stepName, sourceOptionId);
+    setHasEdited(true);
     setDraft({
       ...draft,
       mockupCode: { ...draft.mockupCode, [stepName]: result.mockupCode },
@@ -160,9 +164,9 @@ export default function CustomizeView({ draftId }: Props) {
           <button
             type="button"
             onClick={handleFinalize}
-            disabled={finalizing}
+            disabled={finalizing || !isDirty}
             className="px-5 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50"
-            title={isDirty ? "" : "Regenerate or skip at least one step to finalize"}
+            title={isDirty ? "" : "Make at least one change first"}
           >
             {finalizing ? "Finalizing…" : "Finalize"}
           </button>
