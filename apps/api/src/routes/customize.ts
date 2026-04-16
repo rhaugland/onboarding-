@@ -138,9 +138,20 @@ customize.patch("/:id", async (c) => {
 customize.post("/:id/screens/:stepName/regenerate", async (c) => {
   const id = c.req.param("id");
   const stepName = c.req.param("stepName");
-  const { prompt } = await c.req.json<{ prompt?: string }>();
 
-  const trimmed = (prompt ?? "").trim();
+  let body: Record<string, unknown>;
+  try {
+    const raw = await c.req.json();
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+      return c.json({ error: "Body must be a JSON object" }, 400);
+    }
+    body = raw as Record<string, unknown>;
+  } catch {
+    return c.json({ error: "Invalid JSON body" }, 400);
+  }
+
+  const prompt = typeof body.prompt === "string" ? body.prompt : "";
+  const trimmed = prompt.trim();
   if (trimmed.length === 0) {
     return c.json({ error: "prompt is required" }, 400);
   }
@@ -195,6 +206,11 @@ customize.post("/:id/screens/:stepName/regenerate", async (c) => {
     return c.json({ ok: true, mockupCode: result.mockupCode });
   } catch (err) {
     if (err instanceof GenerationFailedError) {
+      console.error("[customize.regenerate] generation failed", {
+        draftId: id,
+        stepName,
+        message: err.message,
+      });
       return c.json(
         { error: "generation_failed", retryable: true, message: err.message },
         502

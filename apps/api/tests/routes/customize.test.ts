@@ -423,4 +423,17 @@ describe("POST /api/customize/:id/screens/:stepName/regenerate", () => {
     expect(body.error).toBe("generation_failed");
     expect(body.retryable).toBe(true);
   });
+
+  it("rejects malformed JSON with 400", async () => {
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request(
+      "/api/customize/draft-1/screens/welcome/regenerate",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "not json",
+      }
+    );
+    expect(res.status).toBe(400);
+  });
 });
