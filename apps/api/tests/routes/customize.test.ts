@@ -294,3 +294,133 @@ describe("PATCH /api/customize/:id", () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe("POST /api/customize/:id/screens/:stepName/regenerate", () => {
+  beforeEach(() => {
+    selectMock.mockReset();
+    updateMock.mockReset();
+  });
+
+  it("regenerates and persists updated mockup for matching step", async () => {
+    selectMock.mockReturnValueOnce({
+      from: () => ({
+        where: () =>
+          Promise.resolve([
+            {
+              id: "draft-1",
+              flowStructure: [
+                { stepName: "welcome", type: "form", description: "greet" },
+              ],
+              mockupCode: { welcome: "<Old/>" },
+              customizeHistory: [],
+            },
+          ]),
+      }),
+    });
+
+    let captured: any = null;
+    updateMock.mockReturnValue({
+      set: (data: any) => {
+        captured = data;
+        return { where: () => Promise.resolve(undefined) };
+      },
+    });
+
+    const { regenerateScreen } = await import(
+      "../../src/services/screen-regenerator.js"
+    );
+    (regenerateScreen as any).mockResolvedValue({ mockupCode: "<New/>" });
+
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request(
+      "/api/customize/draft-1/screens/welcome/regenerate",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: "make it green" }),
+      }
+    );
+
+    expect(res.status).toBe(200);
+    expect(captured.mockupCode.welcome).toBe("<New/>");
+    expect(captured.customizeHistory).toHaveLength(1);
+    expect(captured.customizeHistory[0].type).toBe("regenerate");
+  });
+
+  it("returns 404 when step not in flowStructure", async () => {
+    selectMock.mockReturnValueOnce({
+      from: () => ({
+        where: () =>
+          Promise.resolve([
+            {
+              id: "draft-1",
+              flowStructure: [{ stepName: "welcome", type: "form", description: "d" }],
+              mockupCode: { welcome: "<W/>" },
+              customizeHistory: [],
+            },
+          ]),
+      }),
+    });
+
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request(
+      "/api/customize/draft-1/screens/bogus/regenerate",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: "x" }),
+      }
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("rejects empty prompt", async () => {
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request(
+      "/api/customize/draft-1/screens/welcome/regenerate",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: "   " }),
+      }
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("returns retryable error on GenerationFailedError", async () => {
+    selectMock.mockReturnValueOnce({
+      from: () => ({
+        where: () =>
+          Promise.resolve([
+            {
+              id: "draft-1",
+              flowStructure: [{ stepName: "welcome", type: "form", description: "d" }],
+              mockupCode: { welcome: "<W/>" },
+              customizeHistory: [],
+            },
+          ]),
+      }),
+    });
+
+    const { regenerateScreen, GenerationFailedError } = await import(
+      "../../src/services/screen-regenerator.js"
+    );
+    (regenerateScreen as any).mockRejectedValue(
+      new GenerationFailedError("bad")
+    );
+
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request(
+      "/api/customize/draft-1/screens/welcome/regenerate",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: "x" }),
+      }
+    );
+    expect(res.status).toBe(502);
+    const body = await res.json();
+    expect(body.error).toBe("generation_failed");
+    expect(body.retryable).toBe(true);
+  });
+});
