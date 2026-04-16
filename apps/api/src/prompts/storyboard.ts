@@ -82,7 +82,7 @@ export const GENERATE_STORYBOARD_MOCKUP_SYSTEM_PROMPT = `You are generating stat
 ## Output Constraints
 - Plain JavaScript JSX, NOT TypeScript
 - No \`import\` statements, no \`"use client"\`
-- Each step is a default-exported zero-argument function returning JSX
+- Each step is a default-exported zero-argument function returning JSX (e.g. \`export default function WelcomeMockup() { return <div>...</div>; }\`)
 - Keep mockups short and focused — visual communication, not business logic
 
 Respond with ONLY valid JSON:
@@ -116,6 +116,7 @@ The preview iframe has no globals.css loaded. Resolve all CSS variable refs to t
 3. ADD: \`useState\` for form fields, validation, submit handlers, \`onNext\`/\`onBack\` navigation
 4. Accept \`onNext\` and/or \`onBack\` props on every step component
 5. Auth components MUST call \`onNext()\` on successful submit and support \`onNext("signup")\` / \`onNext("login")\` for switching between them
+6. **Auth transition:** the auth mockups you received are static zero-argument functions. In the interactive build, rewrite them to accept an \`onNext\` prop, add controlled form state, and call \`onNext()\` on submit. Keep the visual layout unchanged, but the function signature MUST change from \`function SignupPage() {}\` to \`function SignupPage({ onNext }) {}\`.
 
 ## Output Shape
 - Each step is a default-exported React function component (\`export default function StepName({ onNext, onBack }) {...}\`)
@@ -265,12 +266,15 @@ export function buildBuildOptionUserMessage(
     "```jsx",
     authMockup.signup,
     "```",
-    ...option.flowStructure.flatMap((s) => [
-      `### Step: ${s.stepName}`,
-      "```jsx",
-      option.mockupCode[s.stepName] ?? "(mockup missing)",
-      "```",
-    ]),
+    ...option.flowStructure.flatMap((s) => {
+      const code = option.mockupCode[s.stepName];
+      if (!code) {
+        throw new Error(
+          `Mockup code missing for step "${s.stepName}" in option "${option.name}"`
+        );
+      }
+      return [`### Step: ${s.stepName}`, "```jsx", code, "```"];
+    }),
     ``,
     `Build the full interactive version. Preserve the layout/content from each mockup and add state, validation, onNext/onBack navigation. Auth components take \`onNext\` and must support \`onNext("signup")\`/\`onNext("login")\` for switching.`
   );
