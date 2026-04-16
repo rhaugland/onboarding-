@@ -1,7 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 
-vi.mock("../../src/services/claude.js", () => ({
-  sendPrompt: vi.fn().mockResolvedValue({
+vi.mock("../../src/services/claude.js", () => {
+  const mockSendPrompt = vi.fn();
+
+  // First call: plan response
+  mockSendPrompt.mockResolvedValueOnce({
     authCode: {
       login: "<LoginComponent />",
       signup: "<SignupComponent />",
@@ -13,7 +16,6 @@ vi.mock("../../src/services/claude.js", () => ({
         flowStructure: [
           { stepName: "welcome", type: "form", description: "Welcome screen" },
         ],
-        componentCode: { welcome: "<WelcomeStep />" },
       },
       {
         name: "Guided Tour",
@@ -21,11 +23,22 @@ vi.mock("../../src/services/claude.js", () => ({
         flowStructure: [
           { stepName: "tour-start", type: "tour", description: "Tour intro" },
         ],
-        componentCode: { "tour-start": "<TourStart />" },
       },
     ],
-  }),
-}));
+  });
+
+  // Per-option calls: componentCode response
+  mockSendPrompt.mockResolvedValueOnce({
+    componentCode: { welcome: "<WelcomeStep />" },
+  });
+  mockSendPrompt.mockResolvedValueOnce({
+    componentCode: { "tour-start": "<TourStart />" },
+  });
+
+  return {
+    sendPrompt: mockSendPrompt,
+  };
+});
 
 describe("generator service", () => {
   it("generates onboarding options from app profile", async () => {
