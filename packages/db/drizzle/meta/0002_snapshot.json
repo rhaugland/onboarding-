@@ -180,7 +180,30 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "onboarding_options_project_base_customizing_idx": {
+          "name": "onboarding_options_project_base_customizing_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "base_option_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"onboarding_options\".\"status\" = 'customizing'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "onboarding_options_project_id_projects_id_fk": {
           "name": "onboarding_options_project_id_projects_id_fk",
@@ -193,6 +216,19 @@
             "id"
           ],
           "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "onboarding_options_base_option_id_onboarding_options_id_fk": {
+          "name": "onboarding_options_base_option_id_onboarding_options_id_fk",
+          "tableFrom": "onboarding_options",
+          "tableTo": "onboarding_options",
+          "columnsFrom": [
+            "base_option_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
