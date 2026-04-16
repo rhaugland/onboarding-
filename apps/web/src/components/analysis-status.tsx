@@ -1,7 +1,7 @@
 "use client";
 
 interface AnalysisStatusProps {
-  status: "idle" | "reading" | "analyzing" | "generating" | "done" | "error";
+  status: "idle" | "reading" | "analyzing" | "storyboarding" | "done" | "error";
   error?: string;
 }
 
@@ -9,7 +9,7 @@ const STATUS_MESSAGES: Record<string, string> = {
   idle: "Ready",
   reading: "Reading project files...",
   analyzing: "Analyzing project structure with AI...",
-  generating: "Generating onboarding options...",
+  storyboarding: "Generating storyboards...",
   done: "Done!",
   error: "Something went wrong",
 };
@@ -17,7 +17,7 @@ const STATUS_MESSAGES: Record<string, string> = {
 export default function AnalysisStatus({ status, error }: AnalysisStatusProps) {
   if (status === "idle") return null;
 
-  const isLoading = ["reading", "analyzing", "generating"].includes(status);
+  const isLoading = ["reading", "analyzing", "storyboarding"].includes(status);
 
   return (
     <div className="w-full max-w-2xl mx-auto mt-8 p-6 bg-white rounded-xl shadow-sm">
