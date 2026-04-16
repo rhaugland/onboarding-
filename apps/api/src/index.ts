@@ -6,6 +6,7 @@ import health from "./routes/health.js";
 import analyze from "./routes/analyze.js";
 import generate from "./routes/generate.js";
 import storyboard from "./routes/storyboard.js";
+import build from "./routes/build.js";
 import integrate from "./routes/integrate.js";
 
 const app = new Hono();
@@ -20,6 +21,7 @@ app.route("/health", health);
 app.route("/api/analyze", analyze);
 app.route("/api/generate", generate);
 app.route("/api/storyboard", storyboard);
+app.route("/api/build", build);
 app.route("/api/integrate", integrate);
 
 const port = Number(process.env.PORT) || 3011;
