@@ -8,6 +8,7 @@ import generate from "./routes/generate.js";
 import storyboard from "./routes/storyboard.js";
 import build from "./routes/build.js";
 import integrate from "./routes/integrate.js";
+import customize from "./routes/customize.js";
 
 const app = new Hono();
 
@@ -23,6 +24,7 @@ app.route("/api/generate", generate);
 app.route("/api/storyboard", storyboard);
 app.route("/api/build", build);
 app.route("/api/integrate", integrate);
+app.route("/api/customize", customize);
 
 const port = Number(process.env.PORT) || 3011;
 
