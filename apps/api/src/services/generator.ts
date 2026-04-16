@@ -5,6 +5,7 @@ import {
   buildGeneratePlanUserMessage,
   buildGenerateOptionCodeUserMessage,
 } from "../prompts/generate.js";
+import { trimDesignReferences } from "./shared.js";
 
 interface FlowStep {
   stepName: string;
@@ -62,23 +63,10 @@ export async function generateOnboarding(
     throw new Error("Plan response missing 'options' array or 'authCode'");
   }
 
-  // Trim design references for per-option calls — keep brand sources (tailwind, globals.css)
-  // and a single sample page for vocabulary, drop the layout + extra pages.
-  const designReferences = (appProfile.designReferences ?? {}) as {
-    tailwindConfig?: string;
-    globalsCss?: string;
-    samplePages?: Record<string, string>;
-    layoutCode?: string;
-  };
-  const samplePagesEntries = Object.entries(designReferences.samplePages ?? {});
-  const trimmedAppProfile = {
-    ...appProfile,
-    designReferences: {
-      tailwindConfig: designReferences.tailwindConfig,
-      globalsCss: designReferences.globalsCss,
-      samplePages: Object.fromEntries(samplePagesEntries.slice(0, 1)),
-    },
-  };
+  // Trim design references for per-option calls — keep brand sources
+  // (tailwind, globals.css) and a single sample page for vocabulary,
+  // drop layout and extra sample pages to keep per-option token budget down.
+  const trimmedAppProfile = trimDesignReferences(appProfile);
 
   // Step 2: fan out component code generation per option, in parallel
   const optionResults = await Promise.all(
