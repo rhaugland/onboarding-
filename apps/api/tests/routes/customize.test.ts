@@ -437,3 +437,103 @@ describe("POST /api/customize/:id/screens/:stepName/regenerate", () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe("POST /api/customize/:id/screens/:stepName/swap", () => {
+  beforeEach(() => {
+    selectMock.mockReset();
+    updateMock.mockReset();
+  });
+
+  it("copies matching step from source option", async () => {
+    selectMock
+      .mockReturnValueOnce({
+        from: () => ({
+          where: () =>
+            Promise.resolve([
+              {
+                id: "draft-1",
+                projectId: "proj-1",
+                flowStructure: [
+                  { stepName: "welcome", type: "form", description: "d" },
+                ],
+                mockupCode: { welcome: "<Old/>" },
+                customizeHistory: [],
+              },
+            ]),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: () => ({
+          where: () =>
+            Promise.resolve([
+              {
+                id: "sib-2",
+                projectId: "proj-1",
+                mockupCode: { welcome: "<FromTour/>" },
+              },
+            ]),
+        }),
+      });
+
+    let captured: any = null;
+    updateMock.mockReturnValue({
+      set: (data: any) => {
+        captured = data;
+        return { where: () => Promise.resolve(undefined) };
+      },
+    });
+
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request(
+      "/api/customize/draft-1/screens/welcome/swap",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceOptionId: "sib-2" }),
+      }
+    );
+    expect(res.status).toBe(200);
+    expect(captured.mockupCode.welcome).toBe("<FromTour/>");
+    expect(captured.customizeHistory[0].type).toBe("swap");
+    expect(captured.customizeHistory[0].sourceOptionId).toBe("sib-2");
+  });
+
+  it("returns 400 when source is missing the step", async () => {
+    selectMock
+      .mockReturnValueOnce({
+        from: () => ({
+          where: () =>
+            Promise.resolve([
+              {
+                id: "draft-1",
+                projectId: "proj-1",
+                flowStructure: [
+                  { stepName: "welcome", type: "form", description: "d" },
+                ],
+                mockupCode: { welcome: "<Old/>" },
+                customizeHistory: [],
+              },
+            ]),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: () => ({
+          where: () =>
+            Promise.resolve([
+              { id: "sib-2", projectId: "proj-1", mockupCode: {} },
+            ]),
+        }),
+      });
+
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request(
+      "/api/customize/draft-1/screens/welcome/swap",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceOptionId: "sib-2" }),
+      }
+    );
+    expect(res.status).toBe(400);
+  });
+});

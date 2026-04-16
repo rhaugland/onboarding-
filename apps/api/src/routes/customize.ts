@@ -220,4 +220,75 @@ customize.post("/:id/screens/:stepName/regenerate", async (c) => {
   }
 });
 
+customize.post("/:id/screens/:stepName/swap", async (c) => {
+  const id = c.req.param("id");
+  const stepName = c.req.param("stepName");
+
+  let body: Record<string, unknown>;
+  try {
+    const raw = await c.req.json();
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+      return c.json({ error: "Body must be a JSON object" }, 400);
+    }
+    body = raw as Record<string, unknown>;
+  } catch {
+    return c.json({ error: "Invalid JSON body" }, 400);
+  }
+
+  const sourceOptionId =
+    typeof body.sourceOptionId === "string" ? body.sourceOptionId : "";
+  if (!sourceOptionId) {
+    return c.json({ error: "sourceOptionId is required" }, 400);
+  }
+
+  const [draft] = await db
+    .select()
+    .from(onboardingOptions)
+    .where(eq(onboardingOptions.id, id));
+  if (!draft) return c.json({ error: "Draft not found" }, 404);
+
+  const flow = draft.flowStructure as Array<{ stepName: string }>;
+  if (!flow.some((s) => s.stepName === stepName)) {
+    return c.json({ error: "Step not found in draft" }, 404);
+  }
+
+  const [source] = await db
+    .select()
+    .from(onboardingOptions)
+    .where(eq(onboardingOptions.id, sourceOptionId));
+  if (!source || source.projectId !== draft.projectId) {
+    return c.json({ error: "Source option not found" }, 404);
+  }
+
+  const sourceMockups = (source.mockupCode ?? {}) as Record<string, string>;
+  const sourceCode = sourceMockups[stepName];
+  if (!sourceCode) {
+    return c.json(
+      { error: `Source option has no mockup for step "${stepName}"` },
+      400
+    );
+  }
+
+  const newMockupCode = {
+    ...((draft.mockupCode ?? {}) as Record<string, string>),
+    [stepName]: sourceCode,
+  };
+  const history = [
+    ...((draft.customizeHistory ?? []) as Array<Record<string, unknown>>),
+    {
+      timestamp: new Date().toISOString(),
+      type: "swap",
+      stepName,
+      sourceOptionId,
+    },
+  ];
+
+  await db
+    .update(onboardingOptions)
+    .set({ mockupCode: newMockupCode, customizeHistory: history })
+    .where(eq(onboardingOptions.id, id));
+
+  return c.json({ ok: true, mockupCode: sourceCode });
+});
+
 export default customize;
