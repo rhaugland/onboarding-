@@ -22,7 +22,7 @@ export default function Home() {
       setError(undefined);
 
       // Store dirHandle for later integration
-      (window as any).__onboarderDirHandle = dirHandle;
+      (window as unknown as Record<string, unknown>).__onboarderDirHandle = dirHandle;
 
       setStatus("analyzing");
       const { projectId, appProfile } = await analyzeProject(

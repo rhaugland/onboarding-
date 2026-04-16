@@ -37,9 +37,8 @@ export default function IntegratePage() {
   async function handleConfirm() {
     if (!changeset) return;
 
-    const dirHandle = (window as any).__onboarderDirHandle as
-      | FileSystemDirectoryHandle
-      | undefined;
+    const dirHandle = (window as unknown as Record<string, unknown>)
+      .__onboarderDirHandle as FileSystemDirectoryHandle | undefined;
     if (!dirHandle) {
       setError(
         "Lost access to project folder. Please go back and re-select the project."

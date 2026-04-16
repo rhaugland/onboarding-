@@ -3,6 +3,7 @@
   "compilerOptions": {
     "jsx": "preserve",
     "module": "esnext",
+    "lib": ["ES2022", "dom", "dom.iterable"],
     "allowJs": true,
     "noEmit": true,
     "incremental": true,
