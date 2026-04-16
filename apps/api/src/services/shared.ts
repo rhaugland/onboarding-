@@ -1,10 +1,10 @@
 /**
  * Trim design references for per-option Claude calls.
  *
- * Keeps the brand/design vocabulary that materially changes output — Tailwind
- * config, globals.css, the app's layout code, and a single representative
- * sample page — while dropping extra sample pages that bloat token usage
- * without improving per-option fidelity.
+ * Keeps the brand sources that materially change output — Tailwind config,
+ * globals.css, and a single representative sample page — while dropping
+ * layout code and extra sample pages that bloat token usage without
+ * improving per-option fidelity.
  */
 export function trimDesignReferences(
   appProfile: Record<string, unknown>
@@ -21,7 +21,6 @@ export function trimDesignReferences(
     designReferences: {
       tailwindConfig: designReferences.tailwindConfig,
       globalsCss: designReferences.globalsCss,
-      layoutCode: designReferences.layoutCode,
       samplePages: Object.fromEntries(samplePagesEntries.slice(0, 1)),
     },
   };
