@@ -5,7 +5,7 @@ interface StoryboardStripInput {
   authMockup: { login: string; signup: string };
 }
 
-interface ExtractedComponent {
+export interface ExtractedComponent {
   declaration: string;
   name: string;
 }
@@ -16,9 +16,9 @@ interface ExtractedComponent {
  * horizontally as scaled thumbnails. Pure static — no state, no handlers.
  *
  * Note: helpers (extractComponent, toIdentifier, escapeHtml,
- * escapeForTextScript) intentionally duplicate preview-bundler.ts for now.
- * If this pattern grows we can extract to a shared iframe-bundler helper
- * module — tracked as follow-up.
+ * escapeForTextScript) are exported for reuse by single-screen-bundler.ts.
+ * They still duplicate preview-bundler.ts; consolidating all three bundlers
+ * onto one shared helper module is tracked as follow-up.
  */
 export function buildStoryboardStripHtml(input: StoryboardStripInput): string {
   const screens: Array<{ slotName: string; label: string; comp: ExtractedComponent }> = [];
@@ -133,7 +133,7 @@ ${comp.declaration}
 </html>`;
 }
 
-function extractComponent(code: string, stepName: string): ExtractedComponent {
+export function extractComponent(code: string, stepName: string): ExtractedComponent {
   let cleaned = code;
   cleaned = cleaned.replace(/^```(?:jsx?|tsx?)?\s*\n/, "").replace(/\n?```\s*$/, "");
   cleaned = cleaned.replace(/^[ \t]*import[ \t][^\n]*;?\s*$/gm, "");
@@ -167,12 +167,12 @@ function extractComponent(code: string, stepName: string): ExtractedComponent {
   };
 }
 
-function toIdentifier(name: string): string {
+export function toIdentifier(name: string): string {
   const safe = name.replace(/[^a-zA-Z0-9]/g, "_");
   return /^[0-9]/.test(safe) ? `_${safe}` : safe || "_Component";
 }
 
-function escapeHtml(str: string): string {
+export function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -180,6 +180,6 @@ function escapeHtml(str: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function escapeForTextScript(str: string): string {
+export function escapeForTextScript(str: string): string {
   return str.replace(/<\/script/gi, "<\\/script");
 }
