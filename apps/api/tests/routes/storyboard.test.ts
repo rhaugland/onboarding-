@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockAppProfile = { name: "Test", designReferences: {} };
 
@@ -29,6 +29,8 @@ vi.mock("../../src/services/storyboarder.js", () => ({
 }));
 
 let capturedUpdate: any = null;
+let capturedUpdateWhere: any = null;
+let updateCallCount = 0;
 vi.mock("@onboarder/db", () => ({
   db: {
     select: vi.fn().mockReturnValue({
@@ -43,21 +45,33 @@ vi.mock("@onboarder/db", () => ({
         ]),
       }),
     }),
-    update: vi.fn().mockImplementation(() => ({
-      set: vi.fn().mockImplementation((data) => {
-        capturedUpdate = data;
-        return {
-          where: vi.fn().mockResolvedValue(undefined),
-        };
-      }),
-    })),
+    update: vi.fn().mockImplementation(() => {
+      updateCallCount += 1;
+      return {
+        set: vi.fn().mockImplementation((data) => {
+          capturedUpdate = data;
+          return {
+            where: vi.fn().mockImplementation((clause) => {
+              capturedUpdateWhere = clause;
+              return Promise.resolve(undefined);
+            }),
+          };
+        }),
+      };
+    }),
   },
   projects: {},
   onboardingOptions: {},
-  eq: vi.fn(),
+  eq: vi.fn().mockImplementation((col, val) => ({ __eq: [col, val] })),
 }));
 
 describe("POST /api/storyboard", () => {
+  beforeEach(() => {
+    capturedUpdate = null;
+    capturedUpdateWhere = null;
+    updateCallCount = 0;
+  });
+
   it("generates 3 options and saves them with authMockup on project", async () => {
     const { default: app } = await import("../../src/index.js");
     const res = await app.request("/api/storyboard", {
@@ -76,6 +90,10 @@ describe("POST /api/storyboard", () => {
       login: "<Login/>",
       signup: "<Signup/>",
     });
+    // Ensure the update was scoped to a WHERE clause (i.e. eq(projects.id, projectId))
+    // and that we didn't accidentally call update() more than once.
+    expect(updateCallCount).toBe(1);
+    expect(capturedUpdateWhere).toBeTruthy();
   });
 
   it("rejects without projectId", async () => {
