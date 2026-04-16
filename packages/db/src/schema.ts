@@ -16,6 +16,8 @@ export const integrationStatusEnum = pgEnum("integration_status", [
 
 export const optionStatusEnum = pgEnum("option_status", [
   "storyboard",
+  "customizing",
+  "ready",
   "built",
 ]);
 
@@ -42,6 +44,9 @@ export const onboardingOptions = pgTable("onboarding_options", {
   authCode: jsonb("auth_code"),
   status: optionStatusEnum("status").default("storyboard").notNull(),
   selected: boolean("selected").default(false).notNull(),
+  baseOptionId: uuid("base_option_id"),
+  skippedSteps: text("skipped_steps").array().notNull().default([]),
+  customizeHistory: jsonb("customize_history").notNull().default([]),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
