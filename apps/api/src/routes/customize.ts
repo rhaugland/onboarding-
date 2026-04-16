@@ -77,4 +77,49 @@ customize.get("/:id", async (c) => {
   return c.json({ draft, siblings });
 });
 
+customize.patch("/:id", async (c) => {
+  const id = c.req.param("id");
+  const body = (await c.req.json()) as Record<string, unknown>;
+  const keys = Object.keys(body);
+
+  if (keys.length !== 1 || keys[0] !== "skippedSteps") {
+    return c.json(
+      { error: "Only skippedSteps may be updated via PATCH" },
+      400
+    );
+  }
+
+  const skippedSteps = body.skippedSteps;
+  if (
+    !Array.isArray(skippedSteps) ||
+    !skippedSteps.every((s) => typeof s === "string")
+  ) {
+    return c.json({ error: "skippedSteps must be string[]" }, 400);
+  }
+
+  const [draft] = await db
+    .select()
+    .from(onboardingOptions)
+    .where(eq(onboardingOptions.id, id));
+  if (!draft) return c.json({ error: "Draft not found" }, 404);
+
+  const validSteps = new Set(
+    (draft.flowStructure as Array<{ stepName: string }>).map((s) => s.stepName)
+  );
+  const unknown = skippedSteps.filter((s: string) => !validSteps.has(s));
+  if (unknown.length > 0) {
+    return c.json(
+      { error: `Unknown step names: ${unknown.join(", ")}` },
+      400
+    );
+  }
+
+  await db
+    .update(onboardingOptions)
+    .set({ skippedSteps: skippedSteps as string[] })
+    .where(eq(onboardingOptions.id, id));
+
+  return c.json({ ok: true });
+});
+
 export default customize;

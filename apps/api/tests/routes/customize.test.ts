@@ -193,3 +193,84 @@ describe("GET /api/customize/:id", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("PATCH /api/customize/:id", () => {
+  beforeEach(() => {
+    selectMock.mockReset();
+    updateMock.mockReset();
+  });
+
+  it("updates skippedSteps when all step names are valid", async () => {
+    selectMock.mockReturnValueOnce({
+      from: () => ({
+        where: () =>
+          Promise.resolve([
+            {
+              id: "draft-1",
+              flowStructure: [
+                { stepName: "welcome", type: "form", description: "d" },
+                { stepName: "profile", type: "form", description: "d" },
+              ],
+            },
+          ]),
+      }),
+    });
+
+    let captured: any = null;
+    updateMock.mockReturnValue({
+      set: (data: any) => {
+        captured = data;
+        return { where: () => Promise.resolve(undefined) };
+      },
+    });
+
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request("/api/customize/draft-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ skippedSteps: ["profile"] }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(captured.skippedSteps).toEqual(["profile"]);
+  });
+
+  it("rejects unknown step names", async () => {
+    selectMock.mockReturnValueOnce({
+      from: () => ({
+        where: () =>
+          Promise.resolve([
+            {
+              id: "draft-1",
+              flowStructure: [{ stepName: "welcome", type: "form", description: "d" }],
+            },
+          ]),
+      }),
+    });
+
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request("/api/customize/draft-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ skippedSteps: ["welcome", "bogus"] }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects fields other than skippedSteps", async () => {
+    selectMock.mockReturnValueOnce({
+      from: () => ({
+        where: () =>
+          Promise.resolve([{ id: "draft-1", flowStructure: [] }]),
+      }),
+    });
+
+    const { default: app } = await import("../../src/index.js");
+    const res = await app.request("/api/customize/draft-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "new name" }),
+    });
+    expect(res.status).toBe(400);
+  });
+});
