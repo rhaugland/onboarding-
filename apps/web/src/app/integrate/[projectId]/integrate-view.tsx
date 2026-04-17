@@ -17,6 +17,13 @@ export default function IntegrateView({ projectId }: Props) {
   >("loading");
   const [changeset, setChangeset] = useState<IntegrateResponse | null>(null);
   const [error, setError] = useState<string>();
+  const [hasDirHandle, setHasDirHandle] = useState(false);
+
+  useEffect(() => {
+    setHasDirHandle(
+      !!(window as unknown as Record<string, unknown>).__onboarderDirHandle
+    );
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,7 +116,7 @@ export default function IntegrateView({ projectId }: Props) {
               onClick={handleConfirm}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
             >
-              {(window as unknown as Record<string, unknown>).__onboarderDirHandle
+              {hasDirHandle
                 ? "Write Files to Project"
                 : "Download Integration Zip"}
             </button>

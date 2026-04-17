@@ -67,7 +67,16 @@ export default function PreviewView({ projectId }: Props) {
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-gray-600">Loading project...</span>
+        </div>
+      </div>
+    );
+  }
 
   async function handlePick(optionId: string) {
     setBuildError(null);

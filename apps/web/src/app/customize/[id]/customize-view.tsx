@@ -110,7 +110,7 @@ export default function CustomizeView({ draftId }: Props) {
           <p>{loadError}</p>
           <button
             type="button"
-            onClick={() => router.push(`/preview/${draft?.projectId ?? ""}`)}
+            onClick={() => router.push(draft?.projectId ? `/preview/${draft.projectId}` : "/")}
             className="underline text-sm"
           >
             Back to storyboards
