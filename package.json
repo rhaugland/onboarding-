@@ -13,6 +13,10 @@
     "db:generate": "turbo db:generate",
     "db:migrate": "turbo db:migrate"
   },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
+    "tailwindcss": "^4.1.0"
+  },
   "devDependencies": {
     "turbo": "^2.4.0",
     "typescript": "^5.7.0"
