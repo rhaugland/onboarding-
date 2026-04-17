@@ -197,3 +197,28 @@ export const finalizeCustomizeDraft = (id: string) =>
   request<CustomizeDraft>(`/api/customize/${id}/finalize`, {
     method: "POST",
   });
+
+export interface ProjectResponse {
+  project: {
+    id: string;
+    name: string;
+    appProfile: AppProfile;
+    authMockup: { login: string; signup: string };
+  };
+  options: Array<StoryboardOption & { status: string }>;
+  builtOption: {
+    id: string;
+    name: string;
+    rationale: string;
+    flowStructure: Array<{
+      stepName: string;
+      type: "form" | "tour" | "tooltip" | "checklist" | "contextual";
+      description: string;
+    }>;
+    componentCode: Record<string, string>;
+    authCode: { login: string; signup: string };
+  } | null;
+}
+
+export const getProject = (projectId: string) =>
+  request<ProjectResponse>(`/api/projects/${projectId}`);
