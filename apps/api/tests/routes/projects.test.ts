@@ -2,15 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const selectMock = vi.fn();
 
+vi.mock("drizzle-orm", () => ({
+  eq: vi.fn((col, val) => ({ __eq: [col, val] })),
+  and: vi.fn((...args) => ({ __and: args })),
+  inArray: vi.fn((col, vals) => ({ __inArray: [col, vals] })),
+}));
+
 vi.mock("@onboarder/db", () => ({
   db: {
     select: (...args: any[]) => selectMock(...args),
   },
   projects: { id: "id" },
   onboardingOptions: { id: "id", projectId: "projectId", status: "status" },
-  eq: vi.fn((col, val) => ({ __eq: [col, val] })),
-  and: vi.fn((...args) => ({ __and: args })),
-  inArray: vi.fn((col, vals) => ({ __inArray: [col, vals] })),
 }));
 
 import app from "../../src/index.js";

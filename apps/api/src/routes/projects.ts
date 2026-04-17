@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { eq, and } from "drizzle-orm";
-import { db, projects, onboardingOptions, inArray } from "@onboarder/db";
+import { eq, and, inArray } from "drizzle-orm";
+import { db, projects, onboardingOptions } from "@onboarder/db";
 
 const projectsRoute = new Hono();
 
