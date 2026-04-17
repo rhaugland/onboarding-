@@ -3,10 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ChangesetViewer from "@/components/changeset-viewer";
-import { integrateOption } from "@/lib/api";
+import { getProject, integrateOption } from "@/lib/api";
 import type { IntegrateResponse } from "@/lib/api";
 
-export default function IntegratePage() {
+interface Props {
+  projectId: string;
+}
+
+export default function IntegrateView({ projectId }: Props) {
   const router = useRouter();
   const [status, setStatus] = useState<
     "loading" | "review" | "writing" | "done" | "error"
@@ -15,37 +19,41 @@ export default function IntegratePage() {
   const [error, setError] = useState<string>();
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("onboarder_chosen");
-    if (!stored) {
-      router.push("/");
-      return;
-    }
+    let cancelled = false;
 
-    const { projectId, optionId } = JSON.parse(stored);
+    getProject(projectId)
+      .then(async (data) => {
+        if (cancelled) return;
 
-    integrateOption(projectId, optionId)
-      .then((result) => {
+        if (!data.builtOption) {
+          router.push(`/preview/${projectId}`);
+          return;
+        }
+
+        const result = await integrateOption(projectId, data.builtOption.id);
+        if (cancelled) return;
         setChangeset(result);
         setStatus("review");
       })
       .catch((err) => {
-        setError(err.message);
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Integration failed");
         setStatus("error");
       });
-  }, [router]);
 
-  const fromZip = (() => {
-    if (typeof window === "undefined") return false;
-    const session = sessionStorage.getItem("onboarder_session");
-    if (!session) return false;
-    try { return JSON.parse(session).fromZip === true; } catch { return false; }
-  })();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, router]);
 
   async function handleConfirm() {
     if (!changeset) return;
 
-    // If uploaded from zip, download as zip instead of writing to filesystem
-    if (fromZip) {
+    const dirHandle = (window as unknown as Record<string, unknown>)
+      .__onboarderDirHandle as FileSystemDirectoryHandle | undefined;
+    const useZip = !dirHandle;
+
+    if (useZip) {
       setStatus("writing");
       try {
         const JSZip = (await import("jszip")).default;
@@ -68,19 +76,7 @@ export default function IntegratePage() {
       return;
     }
 
-    // Otherwise write directly to filesystem
-    const dirHandle = (window as unknown as Record<string, unknown>)
-      .__onboarderDirHandle as FileSystemDirectoryHandle | undefined;
-    if (!dirHandle) {
-      setError(
-        "Lost access to project folder. Please go back and re-select the project."
-      );
-      setStatus("error");
-      return;
-    }
-
     setStatus("writing");
-
     try {
       const { writeProjectFiles } = await import("@/lib/file-reader");
       await writeProjectFiles(
@@ -103,7 +99,7 @@ export default function IntegratePage() {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={() => router.push("/preview")}
+            onClick={() => router.push(`/preview/${projectId}`)}
             className="px-4 py-2 text-gray-600 border rounded-lg hover:bg-gray-50"
           >
             Back
@@ -113,7 +109,9 @@ export default function IntegratePage() {
               onClick={handleConfirm}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
             >
-              {fromZip ? "Download Integration Zip" : "Write Files to Project"}
+              {(window as unknown as Record<string, unknown>).__onboarderDirHandle
+                ? "Write Files to Project"
+                : "Download Integration Zip"}
             </button>
           )}
         </div>
@@ -201,10 +199,7 @@ export default function IntegratePage() {
               </div>
             )}
             <button
-              onClick={() => {
-                sessionStorage.clear();
-                router.push("/");
-              }}
+              onClick={() => router.push("/")}
               className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Start New Project
