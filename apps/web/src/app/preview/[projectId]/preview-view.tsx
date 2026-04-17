@@ -28,6 +28,13 @@ export default function PreviewView({ projectId }: Props) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [viewport, setViewport] = useState<Viewport>("desktop");
   const [buildError, setBuildError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  function handleShare() {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -107,6 +114,15 @@ export default function PreviewView({ projectId }: Props) {
     router.push(`/integrate/${projectId}`);
   }
 
+  const shareButton = (
+    <button
+      onClick={handleShare}
+      className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+    >
+      {copied ? "Link copied!" : "Share"}
+    </button>
+  );
+
   if (mode === "storyboard") {
     return (
       <>
@@ -115,6 +131,9 @@ export default function PreviewView({ projectId }: Props) {
             Build failed: {buildError}
           </div>
         )}
+        <div className="bg-white border-b border-gray-200 px-6 py-3 flex justify-end">
+          {shareButton}
+        </div>
         <StoryboardView
           options={data.options}
           authMockup={data.project.authMockup}
@@ -150,6 +169,7 @@ export default function PreviewView({ projectId }: Props) {
           >
             ← Back to storyboards
           </button>
+          {shareButton}
           <ViewportToggle viewport={viewport} onChange={setViewport} />
           <button
             onClick={handleIntegrate}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DropZone from "@/components/drop-zone";
 import AnalysisStatus from "@/components/analysis-status";
@@ -8,10 +8,38 @@ import { analyzeProject, generateStoryboard } from "@/lib/api";
 
 type Status = "idle" | "reading" | "analyzing" | "storyboarding" | "done" | "error";
 
+interface SavedProject {
+  projectId: string;
+  name: string;
+  date: string;
+}
+
+const HISTORY_KEY = "onboarder_projects";
+
+function loadHistory(): SavedProject[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveToHistory(projectId: string, name: string) {
+  const history = loadHistory().filter((p) => p.projectId !== projectId);
+  history.unshift({ projectId, name, date: new Date().toISOString() });
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 20)));
+}
+
 export default function Home() {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string>();
+  const [history, setHistory] = useState<SavedProject[]>([]);
+
+  useEffect(() => {
+    setHistory(loadHistory());
+  }, []);
 
   async function handleFilesReady(
     files: Record<string, string>,
@@ -38,6 +66,7 @@ export default function Home() {
       await generateStoryboard(projectId);
 
       setStatus("done");
+      saveToHistory(projectId, projectName);
       router.push(`/preview/${projectId}`);
     } catch (err) {
       setStatus("error");
@@ -60,6 +89,33 @@ export default function Home() {
       />
 
       <AnalysisStatus status={status} error={error} />
+
+      {history.length > 0 && status === "idle" && (
+        <div className="mt-12 w-full max-w-md">
+          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
+            Recent Projects
+          </h2>
+          <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
+            {history.map((p) => (
+              <button
+                key={p.projectId}
+                onClick={() => router.push(`/preview/${p.projectId}`)}
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 text-left"
+              >
+                <div>
+                  <span className="text-sm font-medium text-gray-900">
+                    {p.name}
+                  </span>
+                  <span className="text-xs text-gray-400 ml-2">
+                    {new Date(p.date).toLocaleDateString()}
+                  </span>
+                </div>
+                <span className="text-gray-400 text-sm">→</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
