@@ -36,7 +36,7 @@ const port = Number(process.env.PORT) || 3011;
 
 if (process.env.NODE_ENV !== "test") {
   console.log(`Onboarder API running on port ${port}`);
-  serve({ fetch: app.fetch, port });
+  serve({ fetch: app.fetch, port, hostname: "0.0.0.0" });
 }
 
 export default app;
