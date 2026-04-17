@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "next dev --port 3012",
     "build": "next build",
-    "start": "next start -p ${PORT:-3000}"
+    "start": "next start -H 0.0.0.0 -p 3000"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.0",
