@@ -3,8 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3012",
-    "vercel-build": "cd ../.. && npm run build --workspace=packages/db && cd apps/web && next build",
-    "build": "next build",
+    "build": "npx tsc --project ../../packages/db/tsconfig.json && next build",
     "start": "next start -H 0.0.0.0 -p 3000"
   },
   "dependencies": {
