@@ -13,7 +13,6 @@ import {
   buildOption,
   type CustomizeDraft,
   type StoryboardOption,
-  type OnboardingOption,
 } from "@/lib/api";
 
 interface Props {
@@ -96,26 +95,8 @@ export default function CustomizeView({ draftId }: Props) {
     setFinalizeError(null);
     try {
       const finalized = await finalizeCustomizeDraft(draftId);
-      const built = await buildOption(finalized.projectId, finalized.id);
-
-      // Push built option into sessionStorage so /preview can render it
-      const stored = sessionStorage.getItem("onboarder_session");
-      if (stored) {
-        const session = JSON.parse(stored);
-        const builtOption: OnboardingOption = {
-          id: built.id,
-          name: finalized.name,
-          rationale: finalized.rationale,
-          flowStructure: finalized.flowStructure,
-          componentCode: built.componentCode,
-          authCode: built.authCode,
-        };
-        sessionStorage.setItem(
-          "onboarder_session",
-          JSON.stringify({ ...session, builtOption })
-        );
-      }
-      router.push("/preview");
+      await buildOption(finalized.projectId, finalized.id);
+      router.push(`/preview/${finalized.projectId}`);
     } catch (err) {
       setFinalizing(false);
       setFinalizeError(err instanceof Error ? err.message : "Finalize failed");
@@ -129,7 +110,7 @@ export default function CustomizeView({ draftId }: Props) {
           <p>{loadError}</p>
           <button
             type="button"
-            onClick={() => router.push("/preview")}
+            onClick={() => router.push(`/preview/${draft?.projectId ?? ""}`)}
             className="underline text-sm"
           >
             Back to storyboards
@@ -149,7 +130,7 @@ export default function CustomizeView({ draftId }: Props) {
         <div>
           <button
             type="button"
-            onClick={() => router.push("/preview")}
+            onClick={() => router.push(`/preview/${draft.projectId}`)}
             className="text-sm text-gray-500 hover:text-gray-900"
           >
             ← Back
