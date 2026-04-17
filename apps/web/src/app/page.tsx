@@ -32,29 +32,13 @@ export default function Home() {
       console.log(`[onboarder] ${fileCount} files, ~${(payloadSize / 1024).toFixed(0)}KB payload`);
 
       setStatus("analyzing");
-      const { projectId, appProfile } = await analyzeProject(
-        files,
-        projectName
-      );
+      const { projectId } = await analyzeProject(files, projectName);
 
       setStatus("storyboarding");
-      const { options, authMockup } = await generateStoryboard(projectId);
+      await generateStoryboard(projectId);
 
       setStatus("done");
-
-      // Store data for preview page
-      sessionStorage.setItem(
-        "onboarder_session",
-        JSON.stringify({
-          projectId,
-          appProfile,
-          storyboardOptions: options,
-          authMockup,
-          fromZip: !dirHandle,
-        })
-      );
-
-      router.push("/preview");
+      router.push(`/preview/${projectId}`);
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : "Unknown error");
