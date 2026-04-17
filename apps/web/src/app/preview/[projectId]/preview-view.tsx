@@ -8,61 +8,73 @@ import ViewportToggle from "@/components/viewport-toggle";
 import FlowBreakdown from "@/components/flow-breakdown";
 import StoryboardView from "@/components/storyboard-view";
 import { buildPreviewHtml } from "@/lib/preview-bundler";
-import { buildOption, createCustomizeDraft, StoryboardOption, OnboardingOption } from "@/lib/api";
+import {
+  getProject,
+  buildOption,
+  createCustomizeDraft,
+  type ProjectResponse,
+  type OnboardingOption,
+} from "@/lib/api";
 
 type Viewport = "phone" | "tablet" | "desktop";
-type Mode = "storyboard" | "full";
 
-interface SessionData {
+interface Props {
   projectId: string;
-  appProfile: { name: string };
-  storyboardOptions: StoryboardOption[];
-  authMockup: { login: string; signup: string };
-  builtOption?: OnboardingOption;
-  fromZip?: boolean;
 }
 
-export default function PreviewPage() {
+export default function PreviewView({ projectId }: Props) {
   const router = useRouter();
-  const [session, setSession] = useState<SessionData | null>(null);
+  const [data, setData] = useState<ProjectResponse | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [viewport, setViewport] = useState<Viewport>("desktop");
   const [buildError, setBuildError] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("onboarder_session");
-    if (!stored) {
-      router.push("/");
-      return;
-    }
-    setSession(JSON.parse(stored));
-  }, [router]);
+    let cancelled = false;
+    getProject(projectId)
+      .then((res) => {
+        if (!cancelled) setData(res);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setLoadError(err instanceof Error ? err.message : "Failed to load project");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
 
-  const mode: Mode = session?.builtOption ? "full" : "storyboard";
+  const mode = data?.builtOption ? "full" : "storyboard";
 
   const previewHtml = useMemo(() => {
-    if (!session?.builtOption) return "";
-    return buildPreviewHtml(session.builtOption);
-  }, [session]);
+    if (!data?.builtOption) return "";
+    const built: OnboardingOption = {
+      id: data.builtOption.id,
+      name: data.builtOption.name,
+      rationale: data.builtOption.rationale,
+      flowStructure: data.builtOption.flowStructure,
+      componentCode: data.builtOption.componentCode,
+      authCode: data.builtOption.authCode,
+    };
+    return buildPreviewHtml(built);
+  }, [data]);
 
-  if (!session) return null;
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-700">
+        <p>{loadError}</p>
+      </div>
+    );
+  }
+
+  if (!data) return null;
 
   async function handlePick(optionId: string) {
     setBuildError(null);
     try {
-      const result = await buildOption(session!.projectId, optionId);
-      const pickedMeta = session!.storyboardOptions.find((o) => o.id === optionId);
-      if (!pickedMeta) throw new Error("Picked option missing from session");
-      const builtOption: OnboardingOption = {
-        id: result.id,
-        name: pickedMeta.name,
-        rationale: pickedMeta.rationale,
-        flowStructure: pickedMeta.flowStructure,
-        componentCode: result.componentCode,
-        authCode: result.authCode,
-      };
-      const updated = { ...session!, builtOption };
-      sessionStorage.setItem("onboarder_session", JSON.stringify(updated));
-      setSession(updated);
+      await buildOption(projectId, optionId);
+      const refreshed = await getProject(projectId);
+      setData(refreshed);
     } catch (err) {
       setBuildError(err instanceof Error ? err.message : "Build failed");
     }
@@ -79,22 +91,11 @@ export default function PreviewPage() {
   }
 
   function handleBackToStoryboards() {
-    const updated = { ...session! };
-    delete updated.builtOption;
-    sessionStorage.setItem("onboarder_session", JSON.stringify(updated));
-    setSession(updated);
+    setData({ ...data!, builtOption: null });
   }
 
   function handleIntegrate() {
-    if (!session!.builtOption) return;
-    sessionStorage.setItem(
-      "onboarder_chosen",
-      JSON.stringify({
-        projectId: session!.projectId,
-        optionId: session!.builtOption.id,
-      })
-    );
-    router.push("/integrate");
+    router.push(`/integrate/${projectId}`);
   }
 
   if (mode === "storyboard") {
@@ -106,9 +107,9 @@ export default function PreviewPage() {
           </div>
         )}
         <StoryboardView
-          options={session.storyboardOptions}
-          authMockup={session.authMockup}
-          appName={session.appProfile.name}
+          options={data.options}
+          authMockup={data.project.authMockup}
+          appName={(data.project.appProfile as { name: string }).name}
           onPick={handlePick}
           onCustomize={handleCustomize}
         />
@@ -116,7 +117,15 @@ export default function PreviewPage() {
     );
   }
 
-  const built = session.builtOption!;
+  const built = data.builtOption!;
+  const builtAsOption: OnboardingOption = {
+    id: built.id,
+    name: built.name,
+    rationale: built.rationale,
+    flowStructure: built.flowStructure,
+    componentCode: built.componentCode,
+    authCode: built.authCode,
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -144,9 +153,9 @@ export default function PreviewPage() {
 
       <div className="flex h-[calc(100vh-73px)]">
         <aside className="w-80 bg-white border-r p-4 space-y-3 overflow-y-auto">
-          <OptionCard option={built} isSelected={true} onSelect={() => {}} />
+          <OptionCard option={builtAsOption} isSelected={true} onSelect={() => {}} />
           <div className="pt-4 border-t">
-            <FlowBreakdown steps={built.flowStructure} />
+            <FlowBreakdown steps={builtAsOption.flowStructure} />
           </div>
         </aside>
 
