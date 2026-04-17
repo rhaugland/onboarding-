@@ -1,19 +1,8 @@
-import { Agent, setGlobalDispatcher } from "undici";
-
 export const maxDuration = 600;
 
 export const dynamic = "force-dynamic";
 
 const API_URL = process.env.API_URL || "http://localhost:3011";
-
-// Install a global undici dispatcher with 10-min timeouts for long Claude generation calls
-setGlobalDispatcher(
-  new Agent({
-    headersTimeout: 600_000,
-    bodyTimeout: 600_000,
-    connectTimeout: 30_000,
-  })
-);
 
 async function proxyRequest(request: Request) {
   const url = new URL(request.url);
