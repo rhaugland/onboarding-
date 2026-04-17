@@ -4,6 +4,21 @@ import { db, projects, onboardingOptions } from "@onboarder/db";
 
 const projectsRoute = new Hono();
 
+// GET /api/projects/demo — find the demo project
+projectsRoute.get("/demo", async (c) => {
+  const [demo] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.isDemo, true))
+    .limit(1);
+
+  if (!demo) {
+    return c.json({ error: "No demo project available" }, 404);
+  }
+
+  return c.json({ projectId: demo.id });
+});
+
 projectsRoute.get("/:id", async (c) => {
   const id = c.req.param("id");
 
@@ -44,6 +59,7 @@ projectsRoute.get("/:id", async (c) => {
       name: project.name,
       appProfile: project.appProfile,
       authMockup: project.authMockup,
+      isDemo: project.isDemo,
     },
     options: options.map((o) => ({
       id: o.id,

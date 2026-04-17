@@ -204,6 +204,7 @@ export interface ProjectResponse {
     name: string;
     appProfile: AppProfile;
     authMockup: { login: string; signup: string };
+    isDemo: boolean;
   };
   options: Array<StoryboardOption & { status: string }>;
   builtOption: {
@@ -222,3 +223,57 @@ export interface ProjectResponse {
 
 export const getProject = (projectId: string) =>
   request<ProjectResponse>(`/api/projects/${projectId}`);
+
+export const getDemoProject = () =>
+  request<{ projectId: string }>("/api/projects/demo");
+
+// Comments
+export interface Comment {
+  id: string;
+  projectId: string;
+  optionId: string;
+  authorName: string;
+  content: string;
+  createdAt: string;
+}
+
+export const getComments = (projectId: string) =>
+  request<{ comments: Comment[] }>(`/api/comments/${projectId}`);
+
+export const postComment = (
+  projectId: string,
+  optionId: string,
+  authorName: string,
+  content: string
+) =>
+  request<Comment>("/api/comments", {
+    method: "POST",
+    body: JSON.stringify({ projectId, optionId, authorName, content }),
+  });
+
+// Reactions
+export interface Reaction {
+  id: string;
+  projectId: string;
+  optionId: string;
+  voterName: string;
+  type: "up" | "down";
+  createdAt: string;
+}
+
+export const getReactions = (projectId: string) =>
+  request<{ reactions: Reaction[] }>(`/api/reactions/${projectId}`);
+
+export const postReaction = (
+  projectId: string,
+  optionId: string,
+  voterName: string,
+  type: "up" | "down"
+) =>
+  request<{ action: "created" | "removed" | "switched"; reaction?: Reaction }>(
+    "/api/reactions",
+    {
+      method: "POST",
+      body: JSON.stringify({ projectId, optionId, voterName, type }),
+    }
+  );

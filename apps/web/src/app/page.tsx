@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DropZone from "@/components/drop-zone";
 import AnalysisStatus from "@/components/analysis-status";
-import { analyzeProject, generateStoryboard } from "@/lib/api";
+import { analyzeProject, generateStoryboard, getDemoProject } from "@/lib/api";
 
 type Status = "idle" | "reading" | "analyzing" | "storyboarding" | "done" | "error";
 
@@ -36,10 +36,25 @@ export default function Home() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string>();
   const [history, setHistory] = useState<SavedProject[]>([]);
+  const [hasDemo, setHasDemo] = useState(false);
+  const [loadingDemo, setLoadingDemo] = useState(false);
 
   useEffect(() => {
     setHistory(loadHistory());
+    getDemoProject()
+      .then(() => setHasDemo(true))
+      .catch(() => {});
   }, []);
+
+  async function handleDemo() {
+    setLoadingDemo(true);
+    try {
+      const { projectId } = await getDemoProject();
+      router.push(`/preview/${projectId}`);
+    } catch {
+      setLoadingDemo(false);
+    }
+  }
 
   async function handleFilesReady(
     files: Record<string, string>,
@@ -81,6 +96,15 @@ export default function Home() {
         <p className="text-lg text-gray-500 mt-2">
           AI-powered onboarding for your Next.js apps
         </p>
+        {hasDemo && status === "idle" && (
+          <button
+            onClick={handleDemo}
+            disabled={loadingDemo}
+            className="mt-4 px-5 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50"
+          >
+            {loadingDemo ? "Loading demo..." : "Try a demo"}
+          </button>
+        )}
       </div>
 
       <DropZone

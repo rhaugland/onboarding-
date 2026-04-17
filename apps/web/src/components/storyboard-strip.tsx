@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { buildStoryboardStripHtml } from "@/lib/storyboard-bundler";
 import StoryboardFullscreen from "./storyboard-fullscreen";
+import StepThroughPreview from "./step-through-preview";
 import type { StoryboardOption } from "@/lib/api";
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
 
 export default function StoryboardStrip({ option, authMockup, onPick, onCustomize, picking, customizing }: Props) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isTrying, setIsTrying] = useState(false);
 
   const html = useMemo(
     () =>
@@ -39,19 +41,25 @@ export default function StoryboardStrip({ option, authMockup, onPick, onCustomiz
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() => setIsTrying(true)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Try it
+            </button>
+            <button
+              type="button"
               onClick={() => setIsOpen(true)}
               aria-label={`Expand ${option.name} to fullscreen`}
-              className="px-3 py-2 text-sm text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center gap-1.5"
+              className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
-              <span aria-hidden="true">⤢</span>
-              <span>Expand</span>
+              Expand
             </button>
             <button
               type="button"
               onClick={onCustomize}
               disabled={customizing}
               aria-label={`Customize ${option.name}`}
-              className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
             >
               {customizing ? "Opening…" : "Customize"}
             </button>
@@ -59,7 +67,7 @@ export default function StoryboardStrip({ option, authMockup, onPick, onCustomiz
               type="button"
               onClick={onPick}
               disabled={picking}
-              className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50"
             >
               {picking ? "Building…" : "Pick this flow"}
             </button>
@@ -101,6 +109,14 @@ export default function StoryboardStrip({ option, authMockup, onPick, onCustomiz
           onClose={() => setIsOpen(false)}
           onPick={onPick}
           picking={picking}
+        />
+      )}
+
+      {isTrying && (
+        <StepThroughPreview
+          option={option}
+          authMockup={authMockup}
+          onClose={() => setIsTrying(false)}
         />
       )}
     </>

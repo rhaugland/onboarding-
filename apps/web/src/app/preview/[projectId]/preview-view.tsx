@@ -10,10 +10,14 @@ import StoryboardView from "@/components/storyboard-view";
 import { buildPreviewHtml } from "@/lib/preview-bundler";
 import {
   getProject,
+  getComments,
+  getReactions,
   buildOption,
   createCustomizeDraft,
   type ProjectResponse,
   type OnboardingOption,
+  type Comment,
+  type Reaction,
 } from "@/lib/api";
 
 type Viewport = "phone" | "tablet" | "desktop";
@@ -29,6 +33,8 @@ export default function PreviewView({ projectId }: Props) {
   const [viewport, setViewport] = useState<Viewport>("desktop");
   const [buildError, setBuildError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [reactions, setReactions] = useState<Reaction[]>([]);
 
   function handleShare() {
     navigator.clipboard.writeText(window.location.href);
@@ -40,16 +46,52 @@ export default function PreviewView({ projectId }: Props) {
     let cancelled = false;
     getProject(projectId)
       .then((res) => {
-        if (!cancelled) setData(res);
+        if (!cancelled) {
+          setData(res);
+          // Save to localStorage history so it appears on the home page
+          try {
+            const HISTORY_KEY = "onboarder_projects";
+            const history: Array<{ projectId: string; name: string; date: string }> = JSON.parse(
+              localStorage.getItem(HISTORY_KEY) || "[]"
+            );
+            const filtered = history.filter((p) => p.projectId !== projectId);
+            filtered.unshift({
+              projectId,
+              name: res.project.name,
+              date: new Date().toISOString(),
+            });
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(filtered.slice(0, 20)));
+          } catch {}
+        }
       })
       .catch((err) => {
         if (!cancelled)
           setLoadError(err instanceof Error ? err.message : "Failed to load project");
       });
+    getComments(projectId)
+      .then((res) => {
+        if (!cancelled) setComments(res.comments);
+      })
+      .catch(() => {});
+    getReactions(projectId)
+      .then((res) => {
+        if (!cancelled) setReactions(res.reactions);
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
   }, [projectId]);
+
+  function handleCommentAdded(comment: Comment) {
+    setComments((prev) => [...prev, comment]);
+  }
+
+  function refreshReactions() {
+    getReactions(projectId)
+      .then((res) => setReactions(res.reactions))
+      .catch(() => {});
+  }
 
   const mode = data?.builtOption ? "full" : "storyboard";
 
@@ -131,15 +173,27 @@ export default function PreviewView({ projectId }: Props) {
             Build failed: {buildError}
           </div>
         )}
-        <div className="bg-white border-b border-gray-200 px-6 py-3 flex justify-end">
+        <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {data.project.isDemo && (
+              <span className="px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                Demo Project
+              </span>
+            )}
+          </div>
           {shareButton}
         </div>
         <StoryboardView
+          projectId={projectId}
           options={data.options}
           authMockup={data.project.authMockup}
           appName={(data.project.appProfile as { name: string }).name}
           onPick={handlePick}
           onCustomize={handleCustomize}
+          comments={comments}
+          onCommentAdded={handleCommentAdded}
+          reactions={reactions}
+          onReactionChanged={refreshReactions}
         />
       </>
     );

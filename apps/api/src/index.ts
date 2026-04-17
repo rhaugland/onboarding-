@@ -10,6 +10,8 @@ import build from "./routes/build.js";
 import integrate from "./routes/integrate.js";
 import customize from "./routes/customize.js";
 import projectsRoute from "./routes/projects.js";
+import commentsRoute from "./routes/comments.js";
+import reactionsRoute from "./routes/reactions.js";
 
 const app = new Hono();
 
@@ -27,6 +29,8 @@ app.route("/api/build", build);
 app.route("/api/integrate", integrate);
 app.route("/api/customize", customize);
 app.route("/api/projects", projectsRoute);
+app.route("/api/comments", commentsRoute);
+app.route("/api/reactions", reactionsRoute);
 
 const port = Number(process.env.PORT) || 3011;
 

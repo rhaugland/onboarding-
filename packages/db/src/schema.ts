@@ -8,8 +8,11 @@ import {
   jsonb,
   boolean,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+
+export const reactionTypeEnum = pgEnum("reaction_type", ["up", "down"]);
 
 export const integrationStatusEnum = pgEnum("integration_status", [
   "pending",
@@ -31,6 +34,7 @@ export const projects = pgTable("projects", {
   appProfile: jsonb("app_profile"),
   stackInfo: jsonb("stack_info"),
   authMockup: jsonb("auth_mockup"),
+  isDemo: boolean("is_demo").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -63,6 +67,49 @@ export const onboardingOptions = pgTable(
     )
       .on(table.projectId, table.baseOptionId)
       .where(sql`${table.status} = 'customizing'`),
+  }),
+);
+
+export const comments = pgTable(
+  "comments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .references(() => projects.id)
+      .notNull(),
+    optionId: uuid("option_id")
+      .references(() => onboardingOptions.id)
+      .notNull(),
+    authorName: text("author_name").notNull(),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    projectIdx: index("comments_project_idx").on(table.projectId),
+    optionIdx: index("comments_option_idx").on(table.optionId),
+  }),
+);
+
+export const reactions = pgTable(
+  "reactions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .references(() => projects.id)
+      .notNull(),
+    optionId: uuid("option_id")
+      .references(() => onboardingOptions.id)
+      .notNull(),
+    voterName: text("voter_name").notNull(),
+    type: reactionTypeEnum("type").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    uniqueVote: uniqueIndex("reactions_option_voter_idx").on(
+      table.optionId,
+      table.voterName,
+    ),
+    projectIdx: index("reactions_project_idx").on(table.projectId),
   }),
 );
 
